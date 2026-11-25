@@ -63,15 +63,15 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0006`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`init`, `capture`, `apply`, `undo`, read-only `validate` and `hash`), `scripts/lib/{frontmatter,schema,vault,gitops,capture,plan,apply,undo,setup_vault}.py`, `skills/setup/SKILL.md`, `tests/` with the fixture vault in `tests/fixtures/vault/` (272 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0007`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`init`, `capture`, `apply`, `undo`, read-only `validate` and `hash`), `scripts/lib/{frontmatter,schema,vault,gitops,capture,plan,apply,undo,setup_vault}.py`, `skills/setup/SKILL.md`, `tests/` with the fixture vault in `tests/fixtures/vault/` (287 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 in progress.** Done: everything except the last item. That is: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`, `apply` (+ `--dry-run`/`--diff`), `undo` (ADR-0005); `akashactl init` + `/akasha:setup` (ADR-0006). Last Phase 1 item: the trial with `claude --plugin-dir` on a copy of the real vault, which needs Cheneral's Mac. The setup skill's conversational flow has not been run by Claude yet; only `akashactl init` is tested.
+- **Phase 1 in progress.** Done: everything except the last item. That is: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`, `apply` (+ `--dry-run`/`--diff`), `undo` (ADR-0005); `akashactl init` + `/akasha:setup` (ADR-0006; git size limit default 5 MB), `--git-dir` for cloud-synced vaults (ADR-0007). Last Phase 1 item: the trial with `claude --plugin-dir` on a copy of the real vault, which needs Cheneral's Mac. The setup skill's conversational flow has not been run by Claude yet; only `akashactl init` is tested.
 
 ## Open decisions (ask Cheneral when they block work)
 
 - Adopt the existing Obsidian vault in place, or start a new vault and migrate gradually. `akashactl init` supports both. Until decided, develop against the fixture vault in `tests/` and a **copy** of the real vault, never the original.
 - Which existing vault folders count as `personal/` (coursework, honours research, personal items are candidates).
-- Always-on host for Phase 7 (VPS, home-lab box, or Mac only) and vault sync (Obsidian Sync vs git + Syncthing). Sync or backup must cover `.raw/` files over `raw_git_max_mb`, which git does not store (ADR-0006).
+- Always-on host for Phase 7 (VPS, home-lab box, or Mac only) and vault sync (Obsidian Sync vs git + Syncthing vs Google Drive). Cheneral is considering keeping the vault in Google Drive. Sync or backup must cover `.raw/` files over `raw_git_max_mb`, which git does not store (ADR-0006). With the git history outside a synced vault, only the computer holding the history can write to the vault (ADR-0007).
 - Anthropic API key vs Claude Code plan for headless jobs.
 
 ## Next steps

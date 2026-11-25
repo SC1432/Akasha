@@ -317,3 +317,109 @@ def test_setup_skill_frontmatter():
     assert meta["disable-model-invocation"] is True
     assert "\n" not in meta["description"] and len(meta["description"]) <= 120
     assert "akashactl init" in body and "--dry-run" in body
+
+
+# --- git history outside the vault ---------------------------------------------
+
+
+@pytest.fixture
+def drive_vault(tmp_path):
+    """A vault inside a Google Drive for desktop folder (path shape only; no sync client here)."""
+    v = tmp_path / "Library" / "CloudStorage" / "GoogleDrive-me" / "My Drive" / "My Vault"
+    (v / "Notes").mkdir(parents=True)
+    (v / "Notes" / "a.md").write_text("# A\n")
+    return v
+
+
+def test_synced_folder_warns_and_suggests_git_dir(drive_vault):
+    plan = sv.plan_init(drive_vault)
+    assert plan.synced
+    assert any("looks cloud-synced" in w and "--git-dir ~/.akasha-git/My-Vault" in w for w in plan.warnings)
+
+
+@pytest.mark.parametrize("marker", [("Library", "CloudStorage", "Dropbox"), ("Library", "Mobile Documents", "iCloud~md~obsidian")])
+def test_other_sync_locations_detected(tmp_path, marker):
+    v = tmp_path.joinpath(*marker, "Vault")
+    v.mkdir(parents=True)
+    assert sv.plan_init(v).synced
+
+
+def test_unsynced_folder_has_no_sync_warning(obsidian_vault):
+    plan = sv.plan_init(obsidian_vault)
+    assert not plan.synced and not any("synced" in w for w in plan.warnings)
+
+
+def test_git_dir_full_cycle(drive_vault, tmp_path):
+    history = tmp_path / "home" / ".akasha-git" / "My-Vault"
+    plan = sv.plan_init(drive_vault, git_dir=history)
+    assert any("on this computer only" in w for w in plan.warnings)
+    assert "with the history in" in "\n".join(plan.describe())
+    sv.run_init(plan)
+    dotgit = drive_vault / ".git"
+    assert dotgit.is_file() and dotgit.read_text().strip() == f"gitdir: {history}"
+    assert (history / "HEAD").is_file()
+    v = vault_mod.open_vault(drive_vault)
+    (drive_vault / "inbox" / "c.txt").write_text("caption\n")
+    assert cap.capture(v).commit
+    content = frontmatter.render(
+        {"type": "concept", "title": "X", "status": "seed", "created": "2026-11-25", "updated": "2026-11-25",
+         "tags": [], "generated": True, "sources": []},
+        "Body\n",
+    )
+    s = schema.load()
+    plan_ = plan_mod.validate_plan(
+        {"operation": "ingest", "log": "x", "pages": [{"action": "create", "path": "wiki/concepts/x.md",
+                                                       "content": content}]}, v, s)
+    apply_mod.apply_plan(plan_, v, s)
+    undo_mod.undo(v)
+    assert not (drive_vault / "wiki/concepts/x.md").exists()
+    assert git(drive_vault, "rev-list", "--count", "HEAD").strip() == "4"
+    assert not any(p.name in ("objects", "refs", "HEAD") for p in drive_vault.iterdir())
+
+
+def test_missing_history_gives_clear_error(drive_vault, tmp_path):
+    history = tmp_path / "hist"
+    sv.run_init(sv.plan_init(drive_vault, git_dir=history))
+    history.rename(tmp_path / "elsewhere")
+    with pytest.raises(vault_mod.VaultError, match="doesn't exist on this computer"):
+        vault_mod.open_vault(drive_vault)
+
+
+@pytest.mark.parametrize(
+    "git_dir, message",
+    [
+        ("relative/path", "absolute path"),
+        ("{vault}/.history", "outside the vault"),
+        ("{vault}", "outside the vault"),
+        ("{parent}", "must not contain the vault"),
+        ("{parent}/history", "cloud-synced folder too"),
+        ("{tmp}/full", "not an empty folder"),
+    ],
+)
+def test_bad_git_dir_refused(drive_vault, tmp_path, git_dir, message):
+    (tmp_path / "full").mkdir()
+    (tmp_path / "full" / "x").write_text("x")
+    path = git_dir.format(vault=drive_vault, parent=drive_vault.parent, tmp=tmp_path)
+    assert message in refused(drive_vault, git_dir=path)
+
+
+def test_git_dir_refused_for_existing_repo(obsidian_vault, tmp_path):
+    git(obsidian_vault, "init", "--quiet")
+    assert "already has a git repository" in refused(obsidian_vault, git_dir=tmp_path / "hist")
+
+
+def test_git_dir_empty_existing_folder_ok(drive_vault, tmp_path):
+    (tmp_path / "empty").mkdir()
+    sv.run_init(sv.plan_init(drive_vault, git_dir=tmp_path / "empty"))
+    assert vault_mod.open_vault(drive_vault)
+
+
+def test_cli_git_dir_tilde(drive_vault, tmp_path):
+    env_home = tmp_path / "fakehome"
+    env_home.mkdir()
+    result = subprocess.run(
+        [str(WRAPPER), "init", "--vault", str(drive_vault), "--git-dir", "~/.akasha-git/v"],
+        capture_output=True, text=True, env={**__import__("os").environ, "HOME": str(env_home)},
+    )
+    assert result.returncode == 0, result.stderr
+    assert (env_home / ".akasha-git" / "v" / "HEAD").is_file()

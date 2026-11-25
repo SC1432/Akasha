@@ -19,6 +19,8 @@ from .vault import CONFIG, write_atomic
 __all__ = ["InitError", "InitPlan", "plan_init", "run_init", "DEFAULT_RAW_GIT_MAX_MB"]
 
 DEFAULT_RAW_GIT_MAX_MB = 5
+# Folders that cloud sync clients manage on macOS: CloudStorage (Google Drive, Dropbox, OneDrive) and iCloud.
+SYNCED_MARKERS = ("Library/CloudStorage/", "Library/Mobile Documents/")
 MANAGED = ("inbox", "wiki", ".raw", ".akasha")
 RESERVED_PAGES = (INDEX, LOG, "wiki/hot.md", "wiki/now.md")
 GITIGNORE_HEADER = "# Akasha (managed by akashactl)"
@@ -45,6 +47,8 @@ class InitPlan:
     create_files: dict[str, str] = field(default_factory=dict)
     gitignore_add: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    git_dir: Path | None = None  # history kept outside the vault (git init --separate-git-dir)
+    synced: bool = False
 
     def describe(self) -> list[str]:
         state = ["exists" if self.exists else "will be created"]
@@ -58,7 +62,9 @@ class InitPlan:
             if self.loose_notes:
                 lines.append(f"  (top level)  {self.loose_notes} note{'s' * (self.loose_notes != 1)}")
         lines.append("actions:")
-        if not self.is_repo:
+        if not self.is_repo and self.git_dir:
+            lines.append(f"  git init, with the history in {self.git_dir} (the vault gets a one-line .git file)")
+        elif not self.is_repo:
             lines.append("  git init")
         lines += [f"  create folder {d}/" for d in self.create_dirs]
         lines += [f"  create {f}" for f in self.create_files if f != CONFIG]
@@ -73,7 +79,8 @@ class InitPlan:
 
 
 def plan_init(root: Path | str, personal: list[str] | None = None,
-              raw_git_max_mb: float | None = DEFAULT_RAW_GIT_MAX_MB) -> InitPlan:
+              raw_git_max_mb: float | None = DEFAULT_RAW_GIT_MAX_MB,
+              git_dir: Path | str | None = None) -> InitPlan:
     """Inspect the folder and decide what init would do. Reads only; raises InitError on any problem."""
     root = Path(root).expanduser().resolve()
     errors: list[str] = []
@@ -92,6 +99,26 @@ def plan_init(root: Path | str, personal: list[str] | None = None,
         toplevel = _git_toplevel(ancestor)
         if toplevel:
             errors.append(f"{root} is inside the git repository {toplevel}; the vault must be its own repository")
+
+    if git_dir is not None:
+        git_dir = Path(git_dir).expanduser()
+        if not git_dir.is_absolute():
+            errors.append("--git-dir must be an absolute path (for example ~/.akasha-git/<vault-name>)")
+        else:
+            git_dir = git_dir.resolve()
+            if is_repo:
+                errors.append(
+                    f"{root} already has a git repository; --git-dir only applies to a new one. "
+                    "Moving an existing repository is a manual step"
+                )
+            elif git_dir == root or git_dir.is_relative_to(root):
+                errors.append("--git-dir must be outside the vault, or it would be synced with it")
+            elif root.is_relative_to(git_dir):
+                errors.append("--git-dir must not contain the vault")
+            elif any(m in git_dir.as_posix() + "/" for m in SYNCED_MARKERS):
+                errors.append("--git-dir is inside a cloud-synced folder too; choose one that isn't synced, like ~/.akasha-git")
+            elif git_dir.exists() and (not git_dir.is_dir() or any(git_dir.iterdir())):
+                errors.append(f"--git-dir {git_dir} already exists and is not an empty folder")
 
     default_personal = personal is None
     personal = ["personal"] if default_personal else personal
@@ -131,7 +158,8 @@ def plan_init(root: Path | str, personal: list[str] | None = None,
         raise InitError(errors)
 
     config = {"version": 1, "personal": clean_personal, "raw_git_max_mb": raw_git_max_mb}
-    plan = InitPlan(root=root, exists=exists, is_repo=is_repo, obsidian=(root / ".obsidian").is_dir(), config=config)
+    plan = InitPlan(root=root, exists=exists, is_repo=is_repo, obsidian=(root / ".obsidian").is_dir(), config=config,
+                    git_dir=git_dir, synced=any(m in root.as_posix() + "/" for m in SYNCED_MARKERS))
     if exists:
         plan.folders, plan.loose_notes = _survey(root)
 
@@ -160,6 +188,16 @@ def plan_init(root: Path | str, personal: list[str] | None = None,
         plan.warnings.append(
             f"wiki/ already has {len(wiki_files)} notes; Akasha only rewrites pages it generated (generated: true)"
         )
+    if plan.synced and not is_repo and git_dir is None:
+        plan.warnings.append(
+            "this folder looks cloud-synced; git's history inside it can be corrupted by the sync. "
+            f"Consider --git-dir ~/.akasha-git/{root.name.replace(' ', '-')}"
+        )
+    if plan.synced and git_dir is not None:
+        plan.warnings.append(
+            f"the history in {git_dir} is on this computer only: back it up separately, "
+            "and on another computer Akasha can't write to this vault"
+        )
     if exists and not is_repo and (plan.folders or plan.loose_notes):
         plan.warnings.append("existing notes will not be committed; to version them too: git add -A && git commit")
     return plan
@@ -170,7 +208,11 @@ def run_init(plan: InitPlan) -> str | None:
     root = plan.root
     root.mkdir(parents=True, exist_ok=True)
     if not plan.is_repo:
-        subprocess.run(["git", "init", "--quiet", str(root)], check=True, capture_output=True)
+        cmd = ["git", "init", "--quiet"]
+        if plan.git_dir:
+            plan.git_dir.parent.mkdir(parents=True, exist_ok=True)
+            cmd += ["--separate-git-dir", str(plan.git_dir)]
+        subprocess.run([*cmd, str(root)], check=True, capture_output=True)
     for d in plan.create_dirs:
         (root / d).mkdir(parents=True, exist_ok=True)
     written = []

@@ -59,6 +59,15 @@ def open_vault(root: Path | str) -> Vault:
     limit = config.get("raw_git_max_mb")
     if limit is not None and (isinstance(limit, bool) or not isinstance(limit, (int, float)) or limit <= 0):
         raise VaultError(f"{config_path}: \"raw_git_max_mb\" must be a positive number or null")
+    dotgit = root / ".git"
+    if dotgit.is_file():
+        pointer = dotgit.read_text(encoding="utf-8", errors="replace").strip()
+        target = pointer.removeprefix("gitdir:").strip()
+        if pointer.startswith("gitdir:") and not (root / target).exists():
+            raise VaultError(
+                f"this vault's git history is kept at {target}, which doesn't exist on this computer; "
+                "Akasha can only write to the vault on the computer that holds its history"
+            )
     if not gitops.is_repo_root(root):
         raise VaultError(f"{root} is not the root of a git repository; run /akasha:setup first")
     return Vault(root=root, config=config)

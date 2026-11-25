@@ -88,7 +88,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     personal = [] if args.no_personal else args.personal
     limit = None if args.raw_git_max_mb == 0 else args.raw_git_max_mb
     try:
-        plan = setup_vault.plan_init(args.vault, personal, limit)
+        plan = setup_vault.plan_init(args.vault, personal, limit, args.git_dir)
     except setup_vault.InitError as e:
         print("setup refused, nothing written:", file=sys.stderr)
         for err in e.errors:
@@ -206,6 +206,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-personal", action="store_true", help="no personal folders")
     p.add_argument("--raw-git-max-mb", type=float, default=setup_vault.DEFAULT_RAW_GIT_MAX_MB, metavar="MB",
                    help=f"keep captured files larger than this out of git (default {setup_vault.DEFAULT_RAW_GIT_MAX_MB}; 0 = no limit)")
+    p.add_argument("--git-dir", metavar="PATH",
+                   help="keep git's history outside the vault, e.g. when the vault is in Google Drive or iCloud")
     p.add_argument("--dry-run", action="store_true", help="show what setup would do; write nothing")
     p.set_defaults(func=cmd_init)
 
