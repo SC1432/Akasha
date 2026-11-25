@@ -4,7 +4,7 @@ A Claude Code plugin that turns an Obsidian vault into a personal assistant: one
 
 It follows the inbox → raw → wiki pattern from [claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian), rebuilt smaller so every part is understood and owned.
 
-> Status: **design complete, Phase 1 not started.**
+> Status: **Phase 1 in progress** (schema and frontmatter parser done; writer next).
 
 The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of the Akashic records: the idea of a complete record of everything ever thought or learned.
 
@@ -18,8 +18,11 @@ The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of
 | `docs/decisions/` | Architecture decision records (ADRs), one per decision |
 | `devlog/` | Dated build log, one file per working session |
 | `CLAUDE.md` | Rules for Claude Code sessions in this repo, including keeping the devlog current |
+| `schema/note-types.toml` | Note types: folder, required fields, statuses |
+| `scripts/lib/` | Stdlib helpers: strict frontmatter parser/emitter, schema loader and validator |
+| `tests/` | pytest suite (`python3 -m pytest`) |
 
-Plugin code (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `scripts/`, `schema/`, `tests/`) arrives in Phase 1.
+The rest of the plugin (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `scripts/akashactl.py`) arrives during Phase 1. No third-party packages are needed to run Akasha; pytest is the only development dependency.
 
 ## Core ideas
 

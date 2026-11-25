@@ -1,6 +1,6 @@
 # Akasha: design
 
-*Source of truth for design decisions until the code exists. Last updated 2026-11-25.*
+*Source of truth for design decisions until the code exists. Last updated 2026-11-25 (ADR-0004).*
 
 ## Overview
 
@@ -79,9 +79,9 @@ akasha/
     hooks.json           SessionStart -> akashactl brief
   scripts/
     akashactl.py          the only process that writes to the vault
-    lib/                 frontmatter, hashing, index, git helpers
+    lib/                 frontmatter (strict YAML subset), schema, hashing, index, git helpers
   schema/
-    note-types.yaml      every note type, its folder, required fields
+    note-types.toml      every note type, its folder, required fields (read with tomllib)
   templates/             one Markdown template per note type
   tests/                 pytest suite run against a fixture vault
 ```
@@ -131,6 +131,8 @@ vault/
 
 Common frontmatter on every generated page: `type`, `title`, `status`, `created`, `updated`, `tags`, `generated: true`. Dates are `YYYY-MM-DD`.
 
+Frontmatter is read and written by a stdlib parser for a strict YAML subset: a flat mapping of strings, integers, booleans, null and lists of those. Anything richer is refused, not guessed, so hand-written notes with complex YAML are left alone. See [ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md).
+
 ## Core mechanics
 
 Every change follows one path: a skill drafts a plan, `akashactl apply` validates and writes it, git records it as one commit.
@@ -174,7 +176,7 @@ Each feature = a skill + a note type + optionally a hook or scheduled job, all w
 
 **Session brief.** The SessionStart hook runs `akashactl brief`, printing `hot.md` and active projects with next actions into the session's context. `/akasha:brief` shows the same on demand.
 
-**Extension contract.** A new area = (1) note type in `schema/note-types.yaml`, (2) template, (3) `skills/<area>/SKILL.md` producing write plans, (4) optionally a brief line or scheduled job. No changes to existing code.
+**Extension contract.** A new area = (1) note type in `schema/note-types.toml`, (2) template, (3) `skills/<area>/SKILL.md` producing write plans, (4) optionally a brief line or scheduled job. No changes to existing code.
 
 ## How to use it
 

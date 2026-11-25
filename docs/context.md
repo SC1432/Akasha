@@ -55,15 +55,15 @@ Full design: `docs/design.md`. Roadmap with task checklists: `docs/roadmap.md`. 
 - Exact frontmatter field for making a skill user-invoked only.
 - `marketplace.json` schema details (Phase 6).
 
-## Known issue to resolve in Phase 1
+## Schema and frontmatter formats (resolved, ADR-0004)
 
-The design says `schema/note-types.yaml`, but the conventions say **standard library first**, and Python has no stdlib YAML parser. Recommended fix: use `schema/note-types.toml` read with `tomllib` (stdlib since 3.11), or JSON. Frontmatter parsing has the same problem: Obsidian frontmatter is YAML, so either write a small parser for the flat subset Akasha emits (scalars, lists of scalars) or accept PyYAML as the one dependency. Decide, record an ADR, update `docs/design.md`.
+The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes through `scripts/lib/frontmatter.py`, a stdlib parser and emitter for a strict YAML subset (flat mapping; strings, ints, bools, null, lists of those). It raises `FrontmatterError` with a line number on anything else rather than guessing. `scripts/lib/schema.py` validates a page's frontmatter and path against the schema. Both were cross-checked against PyYAML: no mismatches over 20,000 random scalars and 12,174 accepted flow lists. PyYAML is not a dependency; it was only used for that check.
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Contains only docs: `README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0003`, `devlog/`.
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0004`, `devlog/`) plus `schema/note-types.toml`, `scripts/lib/{frontmatter,schema}.py`, `tests/` (123 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 not started.** First unchecked roadmap item: scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`.
+- **Phase 1 in progress.** Done: ADR-0004 and its code. Next unchecked roadmap item: scaffold `.claude-plugin/plugin.json` and `skills/`; then the fixture vault and `akashactl`.
 
 ## Open decisions (ask Cheneral when they block work)
 
@@ -74,10 +74,9 @@ The design says `schema/note-types.yaml`, but the conventions say **standard lib
 
 ## Next steps
 
-1. Resolve the YAML/stdlib issue above (ADR-0004).
-2. Phase 1 per `docs/roadmap.md`: scaffold, fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
-3. Load with `claude --plugin-dir` against a copy of the real vault.
-4. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
+1. Phase 1 per `docs/roadmap.md`: scaffold, fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
+2. Load with `claude --plugin-dir` against a copy of the real vault.
+3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 
 ## Later-phase notes worth keeping
 

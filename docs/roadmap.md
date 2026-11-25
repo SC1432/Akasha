@@ -13,15 +13,16 @@ flowchart TB
   P7["Phase 7 · Capture + automation"]
 ```
 
-**Current phase: 1 (not started).**
+**Current phase: 1 (in progress).**
 
 ## Phase 1 · Foundations (estimate: 1–2 weekends)
 
 - [x] Create the repo
+- [x] Settle schema and frontmatter formats without third-party packages ([ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md)): `schema/note-types.toml`, `scripts/lib/frontmatter.py`, `scripts/lib/schema.py`, tests
 - [ ] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`
 - [ ] Fixture vault in `tests/` with sample inbox files and a `personal/` note
 - [ ] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
-- [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.yaml`, check `base_hash`, update `index.md` and `log.md`, commit
+- [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit
 - [ ] `akashactl apply --dry-run` and `akashactl undo`
 - [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
 - [ ] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores

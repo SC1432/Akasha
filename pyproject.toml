@@ -1,0 +1,12 @@
+[project]
+name = "akasha"
+version = "0.0.0"
+description = "Claude Code plugin that turns an Obsidian vault into a personal assistant"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
