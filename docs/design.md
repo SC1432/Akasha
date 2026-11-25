@@ -139,7 +139,9 @@ Frontmatter is read and written by a stdlib parser for a strict YAML subset: a f
 
 Every change follows one path: a skill drafts a plan, `akashactl apply` validates and writes it, git records it as one commit.
 
-**Capture.** `akashactl capture` hashes each file in `inbox/` with SHA-256; if `.raw/<hash>.<ext>` is new it copies the file and adds a manifest entry, otherwise it skips the duplicate. The inbox copy is never deleted by Akasha. Links are recorded as pending until a fetcher (Phase 7) turns them into text.
+**Capture.** `akashactl capture` hashes each file in `inbox/` (recursively) with SHA-256; if `.raw/<hash>.<ext>` is new it copies the file create-only and adds a manifest entry, otherwise it skips the duplicate. Hidden files, symlinks and empty files are skipped. The inbox copy is never deleted by Akasha. A link file (`.url`, `.webloc`, or a small text file holding one URL) is stored like any other file, with `kind: link`, `origin: <url>` and `fetch: pending` until a fetcher (Phase 7) turns it into text. `.raw/manifest.json` is the one file in `.raw/` that changes; it is rewritten atomically. Each run that adds something is one commit; `--dry-run` writes nothing.
+
+**Vault marker and commits.** `akashactl` only writes to a folder that has `akasha.json` (`{"version": 1, "personal": [...]}`) and is the root of a git repository. Every write is one commit authored as `Akasha <akasha@localhost>`, with an `Akasha-Operation: <name>` trailer that `undo` uses to find Akasha commits. Only the paths the operation wrote are committed, so anything I have staged stays staged. Vault git hooks are skipped (`--no-verify`).
 
 **Ingest.**
 

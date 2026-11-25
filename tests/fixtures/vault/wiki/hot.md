@@ -1,0 +1,3 @@
+# Hot
+
+Recently: spaced repetition.

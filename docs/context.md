@@ -63,9 +63,9 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0004`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (only `validate` implemented), `scripts/lib/{frontmatter,schema}.py`, `skills/` (empty), `tests/` (137 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0004`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`capture` and read-only `validate` implemented), `scripts/lib/{frontmatter,schema,vault,gitops,capture}.py`, `skills/` (empty), `tests/` with the fixture vault in `tests/fixtures/vault/` (169 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 in progress.** Done: ADR-0004 and its code; plugin scaffold. Next unchecked roadmap item: fixture vault in `tests/`, then `akashactl capture`.
+- **Phase 1 in progress.** Done: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`. Next unchecked roadmap item: `akashactl apply` (path allow-list, schema, `base_hash`, index/log, commit), then `--dry-run` and `undo`.
 
 ## Open decisions (ask Cheneral when they block work)
 
@@ -76,7 +76,7 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Next steps
 
-1. Phase 1 per `docs/roadmap.md`: fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
+1. Phase 1 per `docs/roadmap.md`: `akashactl apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores (duplicate capture skipped is already covered by `tests/test_capture.py`).
 2. Load with `claude --plugin-dir` against a copy of the real vault.
 3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 

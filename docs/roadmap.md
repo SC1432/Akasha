@@ -20,8 +20,8 @@ flowchart TB
 - [x] Create the repo
 - [x] Settle schema and frontmatter formats without third-party packages ([ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md)): `schema/note-types.toml`, `scripts/lib/frontmatter.py`, `scripts/lib/schema.py`, tests
 - [x] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/` (plus `bin/akashactl` and read-only `akashactl validate`)
-- [ ] Fixture vault in `tests/` with sample inbox files and a `personal/` note
-- [ ] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
+- [x] Fixture vault in `tests/` with sample inbox files and a `personal/` note (`tests/fixtures/vault/`)
+- [x] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip (plus `--dry-run`, link files, one commit per run)
 - [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit
 - [ ] `akashactl apply --dry-run` and `akashactl undo`
 - [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
