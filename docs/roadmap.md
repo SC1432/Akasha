@@ -22,10 +22,10 @@ flowchart TB
 - [x] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/` (plus `bin/akashactl` and read-only `akashactl validate`)
 - [x] Fixture vault in `tests/` with sample inbox files and a `personal/` note (`tests/fixtures/vault/`)
 - [x] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip (plus `--dry-run`, link files, one commit per run)
-- [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit
-- [ ] `akashactl apply --dry-run` and `akashactl undo`
+- [x] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit ([ADR-0005](decisions/0005-apply-and-undo-semantics.md))
+- [x] `akashactl apply --dry-run` and `akashactl undo`
 - [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
-- [ ] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores
+- [x] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores (`tests/test_apply.py`)
 - [ ] Load with `claude --plugin-dir` and run setup on a copy of the real vault
 
 ## Phase 2 · Knowledge loop (estimate: 1–2 weeks)

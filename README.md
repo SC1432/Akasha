@@ -4,7 +4,7 @@ A Claude Code plugin that turns an Obsidian vault into a personal assistant: one
 
 It follows the inbox → raw → wiki pattern from [claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian), rebuilt smaller so every part is understood and owned.
 
-> Status: **Phase 1 in progress** (scaffold, schema, frontmatter parser and `akashactl capture` done; `apply`/`undo` next).
+> Status: **Phase 1 in progress**: `akashactl` (`capture`, `apply`, `undo`) is done; `/akasha:setup` and a trial on a copy of the real vault remain.
 
 The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of the Akashic records: the idea of a complete record of everything ever thought or learned.
 
@@ -20,7 +20,7 @@ The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of
 | `CLAUDE.md` | Rules for Claude Code sessions in this repo, including keeping the devlog current |
 | `.claude-plugin/plugin.json` | Plugin manifest |
 | `bin/akashactl` | Wrapper that puts `akashactl` on Claude's Bash PATH when the plugin is enabled |
-| `scripts/akashactl.py` | The single writer; so far `capture` and the read-only `validate` |
+| `scripts/akashactl.py` | The single writer: `capture`, `apply`, `undo`, plus read-only `validate` and `hash` |
 | `schema/note-types.toml` | Note types: folder, required fields, statuses |
 | `scripts/lib/` | Stdlib helpers: strict frontmatter parser/emitter, schema loader and validator |
 | `tests/` | pytest suite (`python3 -m pytest`); `tests/fixtures/vault/` is the sample vault the tests copy |

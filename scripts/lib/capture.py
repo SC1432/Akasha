@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import gitops
-from .vault import Vault, write_atomic
+from .vault import Vault, write_atomic, write_lock
 
 __all__ = ["CaptureError", "CaptureResult", "capture", "MANIFEST", "RAW", "INBOX"]
 
@@ -111,6 +111,11 @@ def capture(vault: Vault, dry_run: bool = False, today: datetime.date | None = N
     if dry_run or not pending:
         return result
 
+    with write_lock(vault):
+        return _write(vault, raw, pending, manifest, result)
+
+
+def _write(vault: Vault, raw: Path, pending: dict, manifest: dict, result: CaptureResult) -> CaptureResult:
     raw.mkdir(exist_ok=True)
     written = []
     for digest, (dest, entry) in pending.items():

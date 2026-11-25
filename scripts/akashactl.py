@@ -1,7 +1,7 @@
 """akashactl: the only process that writes to an Akasha vault.
 
 Skills and agents produce write plans; this CLI validates and applies them.
-Implemented so far: `capture` and `validate` (read-only). `apply`, `undo`,
+Implemented: `capture`, `apply`, `undo`, and the read-only `validate` and `hash`.
 `brief` and `lint` arrive per docs/roadmap.md.
 """
 
@@ -22,7 +22,9 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from lib import capture, frontmatter, gitops, schema, vault as vault_mod  # noqa: E402
+from lib import apply as apply_mod  # noqa: E402
+from lib import capture, frontmatter, gitops, plan as plan_mod, schema, undo as undo_mod  # noqa: E402
+from lib import vault as vault_mod  # noqa: E402
 
 PLUGIN_ROOT = SCRIPTS_DIR.parent
 
@@ -105,6 +107,67 @@ def cmd_capture(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_apply(args: argparse.Namespace) -> int:
+    """Validate a write plan, then write it as one commit (or only show it with --dry-run)."""
+    try:
+        vault = vault_mod.open_vault(args.vault)
+        note_schema = schema.load()
+        text = sys.stdin.read() if args.plan == "-" else Path(args.plan).read_text(encoding="utf-8")
+        plan = plan_mod.validate_plan(plan_mod.load_plan(text), vault, note_schema)
+        result = apply_mod.apply_plan(plan, vault, note_schema, dry_run=args.dry_run)
+    except plan_mod.PlanError as e:
+        print("plan rejected, nothing written:", file=sys.stderr)
+        for err in e.errors:
+            print(f"  - {err}", file=sys.stderr)
+        return 1
+    except (vault_mod.VaultError, apply_mod.ApplyError, schema.SchemaError, gitops.GitError, OSError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    print("dry run, nothing written:" if args.dry_run else f"applied {plan.operation}:")
+    for line in result.summary_lines(diff=args.diff):
+        print(f"  {line}" if not args.diff else line)
+    print("log entry:")
+    for line in result.log_entry.rstrip("\n").splitlines():
+        print(f"  {line}")
+    if result.commit:
+        print(f"commit {result.commit[:12]}")
+    return 0
+
+
+def cmd_undo(args: argparse.Namespace) -> int:
+    """Restore the files of the last Akasha operation that hasn't been undone, as a new commit."""
+    try:
+        vault = vault_mod.open_vault(args.vault)
+        result = undo_mod.undo(vault, dry_run=args.dry_run)
+    except undo_mod.UndoError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except (vault_mod.VaultError, gitops.GitError, OSError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    verb = "would undo" if args.dry_run else "undid"
+    print(f"{verb} {result.target[:12]} {result.subject}")
+    for path in result.restored:
+        print(f"  restore {path}")
+    for path in result.deleted:
+        print(f"  delete {path}")
+    if result.commit:
+        print(f"commit {result.commit[:12]}")
+    return 0
+
+
+def cmd_hash(args: argparse.Namespace) -> int:
+    """Print the sha256 of each file, for use as base_hash in an update."""
+    status = 0
+    for path in args.paths:
+        try:
+            print(f"{plan_mod.sha256_file(Path(path))}  {path}")
+        except OSError as e:
+            print(f"error: {path}: {e}", file=sys.stderr)
+            status = 2
+    return status
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="akashactl", description=__doc__.splitlines()[0])
     parser.add_argument("--version", action="version", version=f"akashactl {plugin_version()}")
@@ -114,6 +177,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vault", default=".", help="vault root (default: current directory)")
     p.add_argument("--dry-run", action="store_true", help="show what would be captured; write nothing")
     p.set_defaults(func=cmd_capture)
+
+    p = sub.add_parser("apply", help="validate a write plan and apply it as one commit")
+    p.add_argument("plan", help="plan JSON file, or - for stdin")
+    p.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    p.add_argument("--dry-run", action="store_true", help="validate and show the changes; write nothing")
+    p.add_argument("--diff", action="store_true", help="also print a unified diff of every file")
+    p.set_defaults(func=cmd_apply)
+
+    p = sub.add_parser("undo", help="revert the last Akasha operation that hasn't been undone")
+    p.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    p.add_argument("--dry-run", action="store_true", help="show what would be restored; write nothing")
+    p.set_defaults(func=cmd_undo)
+
+    p = sub.add_parser("hash", help="print sha256 of files (the base_hash for an update)")
+    p.add_argument("paths", nargs="+")
+    p.set_defaults(func=cmd_hash)
 
     p = sub.add_parser("validate", help="check generated pages against the schema (read-only)")
     p.add_argument("paths", nargs="*", help="pages to check; default: every generated page in wiki/")

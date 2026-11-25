@@ -1,7 +1,7 @@
 # ADR-0003: Own small core with a single writer and git-based undo
 
 **Date:** 2026-11-25
-**Status:** accepted
+**Status:** accepted; undo and apply details refined by [ADR-0005](0005-apply-and-undo-semantics.md)
 
 ## Context
 

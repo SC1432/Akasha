@@ -4,6 +4,7 @@
 # Field kinds: "string", "int", "bool", "date" (YYYY-MM-DD string), "list" (list of scalars).
 # Each type's frontmatter must contain every field in `common` plus its own `required`,
 # its `status` must be one of `statuses`, and its path must sit under `folder`.
+# `label` is the heading used for the type in wiki/index.md.
 
 version = 1
 
@@ -29,33 +30,39 @@ next_action = "string"
 last_touched = "date"
 
 [types.source]
+label = "Sources"
 folder = "wiki/sources"
 required = ["raw", "origin", "kind"]
 statuses = ["ingested"]
 
 [types.concept]
+label = "Concepts"
 folder = "wiki/concepts"
 required = ["sources"]
 statuses = ["seed", "developing", "evergreen", "contested"]
 
 [types.entity]
+label = "Entities"
 folder = "wiki/entities"
 required = ["sources"]
 statuses = ["seed", "developing", "evergreen"]
 
 [types.question]
+label = "Questions"
 folder = "wiki/questions"
 required = ["asked"]
 statuses = ["answered", "open"]
 
 # Course pages live one level down: wiki/courses/<code>/summary.md
 [types.course]
+label = "Courses"
 folder = "wiki/courses"
 subfolder = true
 required = ["course", "built_from"]
 statuses = ["current", "stale"]
 
 [types.project]
+label = "Projects"
 folder = "wiki/projects"
 required = ["next_action", "last_touched"]
 statuses = ["active", "paused", "done"]

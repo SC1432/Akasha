@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
@@ -10,9 +11,10 @@ from pathlib import Path
 
 from . import gitops
 
-__all__ = ["VaultError", "Vault", "open_vault", "write_atomic"]
+__all__ = ["VaultError", "Vault", "open_vault", "write_atomic", "write_lock", "LOCK"]
 
 CONFIG = "akasha.json"
+LOCK = ".akasha/lock"
 
 
 class VaultError(Exception):
@@ -65,3 +67,25 @@ def write_atomic(path: Path, data: bytes) -> None:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+@contextlib.contextmanager
+def write_lock(vault: Vault):
+    """Hold .akasha/lock for the duration of a write so two akashactl writes never interleave."""
+    lock = vault.root / LOCK
+    if lock.parent.is_symlink():
+        raise VaultError(".akasha is a symlink; refusing to use it")
+    lock.parent.mkdir(exist_ok=True)
+    try:
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise VaultError(
+            f"{LOCK} exists: another akashactl write is running, or one crashed. "
+            "If nothing is running, delete the lock file and retry."
+        ) from None
+    with os.fdopen(fd, "w") as f:
+        f.write(f"{os.getpid()}\n")
+    try:
+        yield
+    finally:
+        lock.unlink(missing_ok=True)
