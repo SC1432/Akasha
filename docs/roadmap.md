@@ -24,7 +24,7 @@ flowchart TB
 - [x] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip (plus `--dry-run`, link files, one commit per run)
 - [x] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit ([ADR-0005](decisions/0005-apply-and-undo-semantics.md))
 - [x] `akashactl apply --dry-run` and `akashactl undo`
-- [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
+- [x] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init` ([ADR-0006](decisions/0006-setup-and-large-media.md); large raw files kept out of git)
 - [x] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores (`tests/test_apply.py`)
 - [ ] Load with `claude --plugin-dir` and run setup on a copy of the real vault
 

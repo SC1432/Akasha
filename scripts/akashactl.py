@@ -1,7 +1,7 @@
 """akashactl: the only process that writes to an Akasha vault.
 
 Skills and agents produce write plans; this CLI validates and applies them.
-Implemented: `capture`, `apply`, `undo`, and the read-only `validate` and `hash`.
+Implemented: `init`, `capture`, `apply`, `undo`, and the read-only `validate` and `hash`.
 `brief` and `lint` arrive per docs/roadmap.md.
 """
 
@@ -15,6 +15,7 @@ if sys.version_info < (3, 11):
 
 import argparse
 import json
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -23,7 +24,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from lib import apply as apply_mod  # noqa: E402
-from lib import capture, frontmatter, gitops, plan as plan_mod, schema, undo as undo_mod  # noqa: E402
+from lib import capture, frontmatter, gitops, plan as plan_mod, schema, setup_vault, undo as undo_mod  # noqa: E402
 from lib import vault as vault_mod  # noqa: E402
 
 PLUGIN_ROOT = SCRIPTS_DIR.parent
@@ -80,6 +81,31 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
     print(f"{checked} checked, {problems} with problems, {skipped} skipped (not generated)")
     return 1 if problems else 0
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    """Make a folder an Akasha vault (or adopt an existing one). --dry-run previews and writes nothing."""
+    personal = [] if args.no_personal else args.personal
+    limit = None if args.raw_git_max_mb == 0 else args.raw_git_max_mb
+    try:
+        plan = setup_vault.plan_init(args.vault, personal, limit)
+    except setup_vault.InitError as e:
+        print("setup refused, nothing written:", file=sys.stderr)
+        for err in e.errors:
+            print(f"  - {err}", file=sys.stderr)
+        return 1
+    print("dry run, nothing written." if args.dry_run else "setting up:")
+    for line in plan.describe():
+        print(line)
+    if args.dry_run:
+        return 0
+    try:
+        commit = setup_vault.run_init(plan)
+    except (gitops.GitError, OSError, subprocess.CalledProcessError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    print(f"done; commit {commit[:12]}" if commit else "done")
+    return 0
 
 
 def cmd_capture(args: argparse.Namespace) -> int:
@@ -172,6 +198,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="akashactl", description=__doc__.splitlines()[0])
     parser.add_argument("--version", action="version", version=f"akashactl {plugin_version()}")
     sub = parser.add_subparsers(dest="command", required=True, metavar="command")
+
+    p = sub.add_parser("init", help="make a folder an Akasha vault, or adopt an existing vault")
+    p.add_argument("--vault", default=".", help="vault folder (default: current directory)")
+    p.add_argument("--personal", action="append", metavar="FOLDER",
+                   help="folder of your own notes, read-only to Akasha (repeatable; default: personal/)")
+    p.add_argument("--no-personal", action="store_true", help="no personal folders")
+    p.add_argument("--raw-git-max-mb", type=float, default=setup_vault.DEFAULT_RAW_GIT_MAX_MB, metavar="MB",
+                   help=f"keep captured files larger than this out of git (default {setup_vault.DEFAULT_RAW_GIT_MAX_MB}; 0 = no limit)")
+    p.add_argument("--dry-run", action="store_true", help="show what setup would do; write nothing")
+    p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("capture", help="hash inbox/ files into .raw/ and commit")
     p.add_argument("--vault", default=".", help="vault root (default: current directory)")

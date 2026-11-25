@@ -30,6 +30,12 @@ class Vault:
     def personal(self) -> list[str]:
         return list(self.config.get("personal", []))
 
+    @property
+    def raw_git_max_bytes(self) -> int | None:
+        """Raw files larger than this are kept out of git (None: no limit)."""
+        limit = self.config.get("raw_git_max_mb")
+        return None if limit is None else int(limit * 1024 * 1024)
+
     def path(self, rel: str) -> Path:
         return self.root / rel
 
@@ -50,6 +56,9 @@ def open_vault(root: Path | str) -> Vault:
     personal = config.get("personal", [])
     if not isinstance(personal, list) or not all(isinstance(p, str) and p for p in personal):
         raise VaultError(f"{config_path}: \"personal\" must be a list of folder names")
+    limit = config.get("raw_git_max_mb")
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, (int, float)) or limit <= 0):
+        raise VaultError(f"{config_path}: \"raw_git_max_mb\" must be a positive number or null")
     if not gitops.is_repo_root(root):
         raise VaultError(f"{root} is not the root of a git repository; run /akasha:setup first")
     return Vault(root=root, config=config)

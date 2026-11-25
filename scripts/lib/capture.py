@@ -1,7 +1,8 @@
 """inbox/ -> .raw/: hash each file, copy it create-only as .raw/<sha256><ext>, record it in the manifest.
 
-The inbox is never modified. .raw/<hash> files are only ever created, never changed;
-.raw/manifest.json is the one file in .raw/ that is rewritten (atomically) on each capture.
+The inbox is never modified. .raw/<hash> files are only ever created, never changed.
+Two bookkeeping files in .raw/ are rewritten (atomically): manifest.json, and .gitignore, which
+lists raw files larger than akasha.json's raw_git_max_mb so git does not store them.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ __all__ = ["CaptureError", "CaptureResult", "capture", "MANIFEST", "RAW", "INBOX
 INBOX = "inbox"
 RAW = ".raw"
 MANIFEST = f"{RAW}/manifest.json"
+RAW_GITIGNORE = f"{RAW}/.gitignore"
 URL_RE = re.compile(r"https?://\S+")
 LINK_TEXT_MAX = 4096  # a "link file" is a tiny text file holding one URL
 
@@ -118,6 +120,8 @@ def capture(vault: Vault, dry_run: bool = False, today: datetime.date | None = N
 def _write(vault: Vault, raw: Path, pending: dict, manifest: dict, result: CaptureResult) -> CaptureResult:
     raw.mkdir(exist_ok=True)
     written = []
+    limit = vault.raw_git_max_bytes
+    untracked = []
     for digest, (dest, entry) in pending.items():
         if not dest.exists():
             source = vault.root / entry["inbox_path"]
@@ -126,9 +130,22 @@ def _write(vault: Vault, raw: Path, pending: dict, manifest: dict, result: Captu
             if hashlib.sha256(dest.read_bytes()).hexdigest() != digest:
                 dest.unlink()
                 raise CaptureError(f"{entry['inbox_path']} changed while being captured; run capture again")
+        if limit is not None and entry["size"] > limit:
+            entry["in_git"] = False
+            untracked.append("/" + Path(entry["file"]).name)
+        else:
+            written.append(entry["file"])
         manifest["files"][digest] = entry
-        written.append(entry["file"])
     write_atomic(vault.path(MANIFEST), (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode())
+    if untracked:
+        ignore = vault.path(RAW_GITIGNORE)
+        old = ignore.read_text(encoding="utf-8") if ignore.exists() else (
+            "# Raw files over raw_git_max_mb; kept on disk, not in git (managed by akashactl)\n"
+        )
+        present = set(old.splitlines())
+        new_lines = [line for line in untracked if line not in present]
+        write_atomic(ignore, (old + "".join(f"{line}\n" for line in new_lines)).encode())
+        written.append(RAW_GITIGNORE)
 
     count = len(pending)
     body = "\n".join(f"- {e['inbox_path']} -> {e['file']}" for e in result.new)

@@ -88,6 +88,11 @@ def _find_target(vault: Vault) -> tuple[str, str]:
         operation = trailers.get(OPERATION_TRAILER)
         if operation is None:
             continue
+        if operation == "setup" and sha not in undone:
+            raise UndoError(
+                "nothing to undo: the last Akasha operation is setup, which undo does not reverse "
+                "(it could delete files that existed before). To stop using Akasha here, delete akasha.json."
+            )
         if operation == "undo":
             if REVERTS_TRAILER in trailers:
                 undone.add(trailers[REVERTS_TRAILER])
