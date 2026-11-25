@@ -22,4 +22,4 @@ One main agent sees the whole vault. Each area is a skill plus a note type in th
 
 - Adding an area = schema entry + template + skill, no routing changes.
 - All areas share one link graph, so concepts from courses, captures and projects meet on the same pages.
-- Prompt-injection risk from captured content is contained by the `source-reader` boundary plus `brainctl` validation.
+- Prompt-injection risk from captured content is contained by the `source-reader` boundary plus `akashactl` validation.

@@ -9,7 +9,7 @@ A personal assistant implies some work happens without me in a session (morning 
 
 ## Decision
 
-Build Brain as a Claude Code plugin. Unattended work runs as scheduled headless `claude -p` jobs (launchd on macOS).
+Build Akasha as a Claude Code plugin. Unattended work runs as scheduled headless `claude -p` jobs (launchd on macOS).
 
 ## Alternatives considered
 
@@ -19,4 +19,4 @@ Build Brain as a Claude Code plugin. Unattended work runs as scheduled headless 
 
 - Fastest path to something used daily; reuses Claude Code's skills, agents and hooks.
 - Scheduled jobs depend on the Mac being awake until an always-on host is chosen (Phase 7).
-- The vault, schema and `brainctl` are independent of the agent runtime, so moving to the Agent SDK later does not lose data or tooling.
+- The vault, schema and `akashactl` are independent of the agent runtime, so moving to the Agent SDK later does not lose data or tooling.

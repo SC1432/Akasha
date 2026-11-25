@@ -20,10 +20,10 @@ flowchart TB
 - [x] Create the repo
 - [ ] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`
 - [ ] Fixture vault in `tests/` with sample inbox files and a `personal/` note
-- [ ] `brainctl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
-- [ ] `brainctl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.yaml`, check `base_hash`, update `index.md` and `log.md`, commit
-- [ ] `brainctl apply --dry-run` and `brainctl undo`
-- [ ] `/brain:setup`: preview, adopt existing vault, pick `personal/` folders, write `brain.json`, `git init`
+- [ ] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
+- [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.yaml`, check `base_hash`, update `index.md` and `log.md`, commit
+- [ ] `akashactl apply --dry-run` and `akashactl undo`
+- [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
 - [ ] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores
 - [ ] Load with `claude --plugin-dir` and run setup on a copy of the real vault
 
@@ -31,34 +31,34 @@ flowchart TB
 
 - [ ] `source-reader` agent: read-only tools, returns a draft with key points and verbatim quotes
 - [ ] Templates for `source`, `concept`, `entity`
-- [ ] `/brain:ingest`: list unprocessed raw files, merge into existing concept pages, build plan, dry run, apply
+- [ ] `/akasha:ingest`: list unprocessed raw files, merge into existing concept pages, build plan, dry run, apply
 - [ ] `hot.md` refresh after every apply
-- [ ] `/brain:ask`: keyword search over `wiki/`, answer with page links, flag thin or contested evidence
-- [ ] `/brain:save`
+- [ ] `/akasha:ask`: keyword search over `wiki/`, answer with page links, flag thin or contested evidence
+- [ ] `/akasha:save`
 - [ ] Ingest 10 real sources (articles, PDFs, pasted reel captions) and check the answers
 
 ## Phase 3 · Projects and session brief (estimate: 1 week)
 
 - [ ] `project` note type and template
-- [ ] `/brain:project` with `new`, `update`, `pause`, `close`, `list`
+- [ ] `/akasha:project` with `new`, `update`, `pause`, `close`, `list`
 - [ ] `now.md` generation: active projects by last touched, 14-day stale flag
-- [ ] `brainctl brief` and the SessionStart entry in `hooks/hooks.json`
-- [ ] Create pages for current projects, including one for Brain itself
-- [ ] Two weeks of daily use; log friction on the Brain project page
+- [ ] `akashactl brief` and the SessionStart entry in `hooks/hooks.json`
+- [ ] Create pages for current projects, including one for Akasha itself
+- [ ] Two weeks of daily use; log friction on the Akasha project page
 
 ## Phase 4 · Course summaries (estimate: 1 week)
 
 - [ ] `course` note type with `built_from` tracking
-- [ ] `/brain:course`: read a course's notes in `personal/`, write `summary.md` and `review.md`, link concept pages
+- [ ] `/akasha:course`: read a course's notes in `personal/`, write `summary.md` and `review.md`, link concept pages
 - [ ] Incremental refresh that rebuilds only topics whose notes changed
 - [ ] Stale detection when notes are newer than the summary
 - [ ] Use it to prepare for one test
 
 ## Phase 5 · Vault health (estimate: 1 week)
 
-- [ ] `brainctl lint`: dead links, orphans, missing frontmatter, empty sections, stale summaries, inbox count
+- [ ] `akashactl lint`: dead links, orphans, missing frontmatter, empty sections, stale summaries, inbox count
 - [ ] `reviewer` agent: compare a sample of summaries against their raw sources
-- [ ] `/brain:lint` report, with fixes proposed as normal plans
+- [ ] `/akasha:lint` report, with fixes proposed as normal plans
 - [ ] Run on the real vault and clear the findings
 
 ## Phase 6 · Packaging (estimate: 1 weekend)

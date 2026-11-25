@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This repo is both the Brain plugin and the record of how it was built. Keep the record current.
+This repo is both the Akasha plugin and the record of how it was built. Keep the record current.
 
 ## At the end of every working session
 
@@ -12,7 +12,7 @@ This repo is both the Brain plugin and the record of how it was built. Keep the 
 ## Conventions
 
 - Python 3.11+, standard library first; tests with pytest against the fixture vault in `tests/`.
-- Only `scripts/brainctl.py` may write to a vault. Skills and agents produce write plans.
+- Only `scripts/akashactl.py` may write to a vault. Skills and agents produce write plans.
 - Never write to a vault's `personal/` or `.raw/` folders from plan code.
 - Keep skill descriptions to one line; they cost context on every turn.
 - Devlog entries are factual and short: no padding, include commands, errors and numbers.
