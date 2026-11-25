@@ -119,7 +119,7 @@ vault/
     courses/<code>/       summary.md, review.md per course
     projects/<slug>.md    one page per project
     now.md                generated dashboard of active work
-  akasha.json              {"version": 1, "personal": [...], "raw_git_max_mb": 20}
+  akasha.json              {"version": 1, "personal": [...], "raw_git_max_mb": 5}
   .akasha/                 gitignored runtime state: locks, search index
 ```
 
@@ -142,7 +142,7 @@ Every change follows one path: a skill drafts a plan, `akashactl apply` validate
 
 **Capture.** `akashactl capture` hashes each file in `inbox/` (recursively) with SHA-256; if `.raw/<hash>.<ext>` is new it copies the file create-only and adds a manifest entry, otherwise it skips the duplicate. Hidden files, symlinks and empty files are skipped. The inbox copy is never deleted by Akasha. A link file (`.url`, `.webloc`, or a small text file holding one URL) is stored like any other file, with `kind: link`, `origin: <url>` and `fetch: pending` until a fetcher (Phase 7) turns it into text. `.raw/manifest.json` is the one file in `.raw/` that changes; it is rewritten atomically. Each run that adds something is one commit; `--dry-run` writes nothing.
 
-**Setup.** `/akasha:setup` drives `akashactl init`. It shows a dry run that surveys the existing folders, asks which are personal and whether the 20 MB git size limit is fine, then applies after a yes. Init creates only new files (`akasha.json`, `inbox/.gitkeep`, `wiki/index.md`, `wiki/log.md`, a default `personal/`) and appends a marked block to `.gitignore` (`.akasha/`, `inbox/*`). It runs `git init` if needed and commits only those files; existing notes are never moved, rewritten or committed. It refuses home folders, folders inside another repo, existing vaults, and existing reserved wiki files. Setup can't be undone. Captured files over `raw_git_max_mb` stay in `.raw/` but are listed in `.raw/.gitignore`. See [ADR-0006](decisions/0006-setup-and-large-media.md).
+**Setup.** `/akasha:setup` drives `akashactl init`. It shows a dry run that surveys the existing folders, asks which are personal and whether the 5 MB git size limit is fine, then applies after a yes. Init creates only new files (`akasha.json`, `inbox/.gitkeep`, `wiki/index.md`, `wiki/log.md`, a default `personal/`) and appends a marked block to `.gitignore` (`.akasha/`, `inbox/*`). It runs `git init` if needed and commits only those files; existing notes are never moved, rewritten or committed. It refuses home folders, folders inside another repo, existing vaults, and existing reserved wiki files. Setup can't be undone. Captured files over `raw_git_max_mb` stay in `.raw/` but are listed in `.raw/.gitignore`. See [ADR-0006](decisions/0006-setup-and-large-media.md).
 
 **Vault marker and commits.** `akashactl` only writes to a folder that has `akasha.json` (`{"version": 1, "personal": [...]}`) and is the root of a git repository. Every write is one commit authored as `Akasha <akasha@localhost>`, with an `Akasha-Operation: <name>` trailer that `undo` uses to find Akasha commits. Only the paths the operation wrote are committed, so anything I have staged stays staged. Vault git hooks are skipped (`--no-verify`).
 

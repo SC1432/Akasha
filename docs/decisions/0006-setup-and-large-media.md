@@ -20,7 +20,7 @@
 - **Existing notes are not committed.** If the folder wasn't a git repository, init runs `git init` and commits only its own files. Versioning existing notes is my choice; the skill tells me the command.
 - **Setup can't be undone.** `undo` stops at the setup commit, because reversing it could delete a `.gitignore` that existed before. To stop using Akasha, delete `akasha.json`.
 - **`inbox/` contents are git-ignored.** Inbox files are transient, and their permanent copies are in `.raw/`.
-- **Size limit for git.** `akasha.json` has `raw_git_max_mb` (setup default 20; `null` means no limit). Capture still copies larger files into `.raw/` and records them in the manifest with `in_git: false`, but lists them in `.raw/.gitignore` instead of committing them. That file becomes the second rewritable bookkeeping file in `.raw/`, alongside `manifest.json`.
+- **Size limit for git.** `akasha.json` has `raw_git_max_mb` (setup default 5; `null` means no limit). Capture still copies larger files into `.raw/` and records them in the manifest with `in_git: false`, but lists them in `.raw/.gitignore` instead of committing them. That file becomes the second rewritable bookkeeping file in `.raw/`, alongside `manifest.json`.
 
 ## Alternatives considered
 
@@ -30,6 +30,7 @@
 
 ## Consequences
 
-- Large raw files are backed up only by whatever syncs or backs up the vault folder (Time Machine, Syncthing, Obsidian Sync), not by git. The Phase 7 sync decision has to cover `.raw/`.
+- Large raw files are backed up only by whatever syncs or backs up the vault folder (Google Drive, Time Machine, Syncthing, Obsidian Sync), not by git. The Phase 7 sync decision has to cover `.raw/`.
 - Undoing a capture leaves large files on disk. A later capture re-records them, because their hash still matches.
+- The default was lowered from 20 MB to 5 MB on the same day, before merge, to save disk space on the MacBook Air. Every committed raw file is stored twice on disk (the `.raw/` copy and git's compressed copy), and PDFs barely compress. At 5 MB, text captures, captions and transcripts stay fully versioned, while most PDFs, images and all video live only in `.raw/`. Raw files never change once captured, so losing git history for them costs little. Undo matters most for the wiki pages, and those are always committed.
 - A vault set up before this ADR has no `raw_git_max_mb` key and keeps every raw file in git, which is how the test fixture vault behaves.

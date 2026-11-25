@@ -18,7 +18,7 @@ from .vault import CONFIG, write_atomic
 
 __all__ = ["InitError", "InitPlan", "plan_init", "run_init", "DEFAULT_RAW_GIT_MAX_MB"]
 
-DEFAULT_RAW_GIT_MAX_MB = 20
+DEFAULT_RAW_GIT_MAX_MB = 5
 MANAGED = ("inbox", "wiki", ".raw", ".akasha")
 RESERVED_PAGES = (INDEX, LOG, "wiki/hot.md", "wiki/now.md")
 GITIGNORE_HEADER = "# Akasha (managed by akashactl)"

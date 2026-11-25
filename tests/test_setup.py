@@ -76,7 +76,7 @@ def test_adopt_obsidian_vault(obsidian_vault):
     commit = sv.run_init(sv.plan_init(obsidian_vault, ["Courses", "Research/"]))
     v = vault_mod.open_vault(obsidian_vault)
     assert v.personal == ["Courses", "Research"]
-    assert v.raw_git_max_bytes == 20 * 1024 * 1024
+    assert v.raw_git_max_bytes == sv.DEFAULT_RAW_GIT_MAX_MB * 1024 * 1024 == 5 * 1024 * 1024
     assert committed_files(obsidian_vault) == SETUP_FILES
     assert commit == git(obsidian_vault, "rev-parse", "HEAD").strip()
     assert "Akasha-Operation: setup" in git(obsidian_vault, "log", "-1", "--format=%B")
