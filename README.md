@@ -12,6 +12,7 @@ The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of
 
 | Path | What it holds |
 | --- | --- |
+| `docs/context.md` | Handoff context for Claude Code: preferences, decisions, state, next steps |
 | `docs/design.md` | What the tool does, how it is built, how to use it |
 | `docs/roadmap.md` | Seven phases, their gates and task checklists |
 | `docs/decisions/` | Architecture decision records (ADRs), one per decision |

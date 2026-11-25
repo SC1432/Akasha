@@ -2,6 +2,8 @@
 
 This repo is both the Akasha plugin and the record of how it was built. Keep the record current.
 
+Read the project context, working preferences, decisions and current state before starting work: @docs/context.md
+
 ## At the end of every working session
 
 1. Create or append to `devlog/YYYY-MM-DD.md` (today's date) using `devlog/TEMPLATE.md`: what was done, what was learned, problems hit, next step.
