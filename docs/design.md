@@ -77,6 +77,8 @@ akasha/
     reviewer.md          checks drafts and summaries against raw sources
   hooks/
     hooks.json           SessionStart -> akashactl brief
+  bin/
+    akashactl            wrapper on the Bash PATH: python3 -I scripts/akashactl.py
   scripts/
     akashactl.py          the only process that writes to the vault
     lib/                 frontmatter (strict YAML subset), schema, hashing, index, git helpers
@@ -91,7 +93,7 @@ akasha/
 | Skills | Instructions Claude loads when relevant; each also runs as `/akasha:<name>`. They gather context and produce a write plan, never write files. |
 | Agents | Subagents with isolated context and restricted tools, used only for untrusted input and independent review. |
 | Hook | Runs `akashactl brief` at session start so Claude begins with recent context and active projects. |
-| `akashactl.py` | Python CLI: `capture`, `apply`, `lint`, `brief`, `undo`. Validates plans, writes, updates index and log, commits. |
+| `akashactl.py` | Python CLI: `capture`, `apply`, `lint`, `brief`, `undo`, plus read-only `validate`. Validates plans, writes, updates index and log, commits. Needs Python 3.11+ and fails with a clear message otherwise (macOS ships 3.9; use Homebrew's). Called as `akashactl` through `bin/`, run with `python3 -I` so modules in the vault folder can't shadow its imports. |
 | Schema | Single source of truth for note types. Adding an area starts here. |
 
 Every auto-invocable skill costs context on every turn, so descriptions stay to one line and rarely used skills (`setup`, `lint`) are user-invoked only.

@@ -19,7 +19,7 @@ flowchart TB
 
 - [x] Create the repo
 - [x] Settle schema and frontmatter formats without third-party packages ([ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md)): `schema/note-types.toml`, `scripts/lib/frontmatter.py`, `scripts/lib/schema.py`, tests
-- [ ] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`
+- [x] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/` (plus `bin/akashactl` and read-only `akashactl validate`)
 - [ ] Fixture vault in `tests/` with sample inbox files and a `personal/` note
 - [ ] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
 - [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit
@@ -64,7 +64,7 @@ flowchart TB
 
 ## Phase 6 · Packaging (estimate: 1 weekend)
 
-- [ ] `.claude-plugin/marketplace.json`, README with install and command reference, version tag
+- [ ] `.claude-plugin/marketplace.json`, README with install and command reference, version tag, `LICENSE` (the plugin directory requires one)
 - [ ] One-line skill descriptions; `setup` and `lint` user-invoked only
 - [ ] Install from GitHub on a second machine or a fresh user account
 

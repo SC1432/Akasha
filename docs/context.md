@@ -44,6 +44,9 @@ Full design: `docs/design.md`. Roadmap with task checklists: `docs/roadmap.md`. 
 
 - A Claude Code plugin is a directory with a manifest at `.claude-plugin/plugin.json` plus components: `skills/<name>/SKILL.md` (each also runs as `/<plugin>:<name>`), `agents/*.md`, `hooks/hooks.json`, `.mcp.json`. Source: https://code.claude.com/docs/en/plugins/overview
 - During development, load without a marketplace: `claude --plugin-dir <path>`.
+- Plugin manifest: only `name` is required; everything except `plugin.json` goes at the plugin root, not inside `.claude-plugin/`. Files in `bin/` are added to the Bash tool's PATH while the plugin is enabled, so skills call `akashactl` directly. `${CLAUDE_PLUGIN_ROOT}` is substituted inline in skill/agent Markdown and exported to hooks, but is **not** set in the Bash tool's environment. `${CLAUDE_PLUGIN_DATA}` persists across updates. Source: https://code.claude.com/docs/en/plugins-reference (read 2026-11-25).
+- Skill frontmatter: `disable-model-invocation: true` makes a skill user-invoked only (`/name`); `user-invocable: false` is the opposite. `argument-hint`, `allowed-tools`, `$ARGUMENTS` / `$0` substitution. Source: https://code.claude.com/docs/en/skills.
+- `claude plugin validate <dir>` checks the manifest and layout; `claude --plugin-dir <dir> plugin details akasha` shows the component inventory and always-on token cost. The `claude` CLI exists in cloud containers, so both run in CI-style tests. Publishing to the plugin directory requires a `LICENSE` file or `license` in `plugin.json` (Phase 6).
 - Distribution: a repo with `.claude-plugin/marketplace.json`; install via `claude plugin marketplace add <owner>/<repo>` then `claude plugin install <plugin>@<marketplace>`.
 - Every skill/agent Claude can invoke on its own costs context on every turn (name + description), so keep descriptions to one line and make rarely used skills user-invoked only.
 - Cloud sessions (claude.ai/code) do not load local plugins; vault work happens in local Claude Code.
@@ -52,7 +55,6 @@ Full design: `docs/design.md`. Roadmap with task checklists: `docs/roadmap.md`. 
 ## Not yet verified (check docs before relying on them)
 
 - That **SessionStart hook stdout is injected into the session context** (the session brief depends on it). Read the current hooks docs before building Phase 3.
-- Exact frontmatter field for making a skill user-invoked only.
 - `marketplace.json` schema details (Phase 6).
 
 ## Schema and frontmatter formats (resolved, ADR-0004)
@@ -61,9 +63,9 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0004`, `devlog/`) plus `schema/note-types.toml`, `scripts/lib/{frontmatter,schema}.py`, `tests/` (123 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0004`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (only `validate` implemented), `scripts/lib/{frontmatter,schema}.py`, `skills/` (empty), `tests/` (137 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 in progress.** Done: ADR-0004 and its code. Next unchecked roadmap item: scaffold `.claude-plugin/plugin.json` and `skills/`; then the fixture vault and `akashactl`.
+- **Phase 1 in progress.** Done: ADR-0004 and its code; plugin scaffold. Next unchecked roadmap item: fixture vault in `tests/`, then `akashactl capture`.
 
 ## Open decisions (ask Cheneral when they block work)
 
@@ -74,7 +76,7 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Next steps
 
-1. Phase 1 per `docs/roadmap.md`: scaffold, fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
+1. Phase 1 per `docs/roadmap.md`: fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
 2. Load with `claude --plugin-dir` against a copy of the real vault.
 3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 

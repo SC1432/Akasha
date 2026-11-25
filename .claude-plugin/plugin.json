@@ -1,0 +1,12 @@
+{
+  "name": "akasha",
+  "displayName": "Akasha",
+  "version": "0.0.0",
+  "description": "Turns an Obsidian vault into a personal assistant: captured sources become a linked wiki, plus projects and course review.",
+  "author": {
+    "name": "Cheneral",
+    "url": "https://github.com/SC1432"
+  },
+  "repository": "https://github.com/SC1432/Akasha",
+  "keywords": ["obsidian", "second-brain", "wiki", "notes"]
+}
