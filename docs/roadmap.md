@@ -27,6 +27,7 @@ flowchart TB
 - [x] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init` ([ADR-0006](decisions/0006-setup-and-large-media.md); large raw files kept out of git)
 - [x] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores (`tests/test_apply.py`)
 - [ ] Load with `claude --plugin-dir` and run setup on a copy of the real vault
+- [ ] `akashactl recover` (+ `--dry-run`): after a crash or power loss mid-write, restore uncommitted changes to the files the interrupted operation was writing (Akasha-managed paths only: `wiki/` pages, `index.md`, `log.md`, `.raw/` bookkeeping) to the last commit, delete partial `.raw/` copies that aren't in the manifest, then clear the stale `.akasha/lock`. Never touches `personal/`, `inbox/` or my own uncommitted edits elsewhere. Idea from claude-obsidian's `transaction recover`.
 
 ## Phase 2 · Knowledge loop (estimate: 1–2 weeks)
 

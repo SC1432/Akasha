@@ -77,8 +77,9 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 ## Next steps
 
 1. On the Mac: copy the real vault, run `claude --plugin-dir <akasha checkout>` in the copy, run `/akasha:setup`, then try `akashactl capture`. Log any friction in the devlog.
-2. Then Phase 2 (knowledge loop): `source-reader` agent, templates, `/akasha:ingest`, `hot.md`, `/akasha:ask`, `/akasha:save`.
-3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
+2. `akashactl recover` (on the roadmap in Phase 1): clean up after an interrupted write instead of leaving partial files and a stale lock for manual cleanup.
+3. Then Phase 2 (knowledge loop): `source-reader` agent, templates, `/akasha:ingest`, `hot.md`, `/akasha:ask`, `/akasha:save`.
+4. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 
 ## Later-phase notes worth keeping
 
