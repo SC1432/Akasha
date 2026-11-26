@@ -1,7 +1,7 @@
 # ADR-0003: Own small core with a single writer and git-based undo
 
 **Date:** 2026-11-25
-**Status:** accepted
+**Status:** accepted; undo and apply details refined by [ADR-0005](0005-apply-and-undo-semantics.md)
 
 ## Context
 
@@ -12,7 +12,7 @@ claude-obsidian already implements inbox → raw → wiki with SHA-256 fingerpri
 Rebuild the pattern in a small core:
 
 - `.raw/` is create-only, files named by SHA-256.
-- `akashactl.py` is the only writer; it validates plans against `schema/note-types.yaml`.
+- `akashactl.py` is the only writer; it validates plans against `schema/note-types.toml` (originally `.yaml`; changed by ADR-0004).
 - Each update carries the `base_hash` of the page as read; a mismatch blocks the write.
 - One git commit per operation; `akashactl undo` reverts the last Akasha commit.
 

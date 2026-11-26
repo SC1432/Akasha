@@ -1,6 +1,6 @@
 # Akasha: design
 
-*Source of truth for design decisions until the code exists. Last updated 2026-11-25.*
+*Source of truth for design decisions until the code exists. Last updated 2026-11-25 (ADR-0004).*
 
 ## Overview
 
@@ -77,11 +77,13 @@ akasha/
     reviewer.md          checks drafts and summaries against raw sources
   hooks/
     hooks.json           SessionStart -> akashactl brief
+  bin/
+    akashactl            wrapper on the Bash PATH: python3 -I scripts/akashactl.py
   scripts/
     akashactl.py          the only process that writes to the vault
-    lib/                 frontmatter, hashing, index, git helpers
+    lib/                 frontmatter (strict YAML subset), schema, hashing, index, git helpers
   schema/
-    note-types.yaml      every note type, its folder, required fields
+    note-types.toml      every note type, its folder, required fields (read with tomllib)
   templates/             one Markdown template per note type
   tests/                 pytest suite run against a fixture vault
 ```
@@ -91,7 +93,7 @@ akasha/
 | Skills | Instructions Claude loads when relevant; each also runs as `/akasha:<name>`. They gather context and produce a write plan, never write files. |
 | Agents | Subagents with isolated context and restricted tools, used only for untrusted input and independent review. |
 | Hook | Runs `akashactl brief` at session start so Claude begins with recent context and active projects. |
-| `akashactl.py` | Python CLI: `capture`, `apply`, `lint`, `brief`, `undo`. Validates plans, writes, updates index and log, commits. |
+| `akashactl.py` | Python CLI: `capture`, `apply`, `lint`, `brief`, `undo`, plus read-only `validate`. Validates plans, writes, updates index and log, commits. Needs Python 3.11+ and fails with a clear message otherwise (macOS ships 3.9; use Homebrew's). Called as `akashactl` through `bin/`, run with `python3 -I` so modules in the vault folder can't shadow its imports. |
 | Schema | Single source of truth for note types. Adding an area starts here. |
 
 Every auto-invocable skill costs context on every turn, so descriptions stay to one line and rarely used skills (`setup`, `lint`) are user-invoked only.
@@ -103,7 +105,8 @@ vault/
   inbox/                  drop zone; files stay until I remove them
   .raw/
     <sha256>.<ext>        immutable, create-only source copies
-    manifest.json         original name, type, captured date, origin URL
+    manifest.json         original name, type, captured date, origin URL, in_git
+    .gitignore            raw files over raw_git_max_mb (kept on disk, not in git)
   personal/               my own notes, read-only to Akasha
   wiki/
     index.md              catalog of canonical pages
@@ -116,7 +119,7 @@ vault/
     courses/<code>/       summary.md, review.md per course
     projects/<slug>.md    one page per project
     now.md                generated dashboard of active work
-  akasha.json              vault identity and settings
+  akasha.json              {"version": 1, "personal": [...], "raw_git_max_mb": 5}
   .akasha/                 gitignored runtime state: locks, search index
 ```
 
@@ -131,11 +134,17 @@ vault/
 
 Common frontmatter on every generated page: `type`, `title`, `status`, `created`, `updated`, `tags`, `generated: true`. Dates are `YYYY-MM-DD`.
 
+Frontmatter is read and written by a stdlib parser for a strict YAML subset: a flat mapping of strings, integers, booleans, null and lists of those. Anything richer is refused, not guessed, so hand-written notes with complex YAML are left alone. See [ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md).
+
 ## Core mechanics
 
 Every change follows one path: a skill drafts a plan, `akashactl apply` validates and writes it, git records it as one commit.
 
-**Capture.** `akashactl capture` hashes each file in `inbox/` with SHA-256; if `.raw/<hash>.<ext>` is new it copies the file and adds a manifest entry, otherwise it skips the duplicate. The inbox copy is never deleted by Akasha. Links are recorded as pending until a fetcher (Phase 7) turns them into text.
+**Capture.** `akashactl capture` hashes each file in `inbox/` (recursively) with SHA-256; if `.raw/<hash>.<ext>` is new it copies the file create-only and adds a manifest entry, otherwise it skips the duplicate. Hidden files, symlinks and empty files are skipped. The inbox copy is never deleted by Akasha. A link file (`.url`, `.webloc`, or a small text file holding one URL) is stored like any other file, with `kind: link`, `origin: <url>` and `fetch: pending` until a fetcher (Phase 7) turns it into text. `.raw/manifest.json` is the one file in `.raw/` that changes; it is rewritten atomically. Each run that adds something is one commit; `--dry-run` writes nothing.
+
+**Setup.** `/akasha:setup` drives `akashactl init`. It shows a dry run that surveys the existing folders, asks which are personal and whether the 5 MB git size limit is fine, then applies after a yes. Init creates only new files (`akasha.json`, `inbox/.gitkeep`, `wiki/index.md`, `wiki/log.md`, a default `personal/`) and appends a marked block to `.gitignore` (`.akasha/`, `inbox/*`). It runs `git init` if needed and commits only those files; existing notes are never moved, rewritten or committed. It refuses home folders, folders inside another repo, existing vaults, and existing reserved wiki files. Setup can't be undone. Captured files over `raw_git_max_mb` stay in `.raw/` but are listed in `.raw/.gitignore`. For a vault in Google Drive, iCloud or Dropbox, `--git-dir ~/.akasha-git/<name>` keeps git's history outside the synced folder; the vault holds only a one-line `.git` file, and setup warns when it detects a synced path. See [ADR-0006](decisions/0006-setup-and-large-media.md) and [ADR-0007](decisions/0007-git-history-outside-synced-vaults.md).
+
+**Vault marker and commits.** `akashactl` only writes to a folder that has `akasha.json` (`{"version": 1, "personal": [...]}`) and is the root of a git repository. Every write is one commit authored as `Akasha <akasha@localhost>`, with an `Akasha-Operation: <name>` trailer that `undo` uses to find Akasha commits. Only the paths the operation wrote are committed, so anything I have staged stays staged. Vault git hooks are skipped (`--no-verify`).
 
 **Ingest.**
 
@@ -160,7 +169,9 @@ Every change follows one path: a skill drafts a plan, `akashactl apply` validate
 }
 ```
 
-**Protection and undo.** Each `update` carries the `base_hash` of the page as read; if I edited it since, `apply` stops. Each apply is one commit, so `akashactl undo` is a `git revert` of the last Akasha commit. See [ADR-0003](decisions/0003-own-core-git-undo.md).
+**Apply.** `akashactl apply PLAN.json` (or `-` for stdin) validates the whole plan before writing anything and lists every problem at once. The checks are: paths only under `wiki/`, `.md`, outside every `personal` folder, and with no `..`, hidden parts or symlinks; frontmatter passes the schema; a `create` target doesn't exist under any letter case; an `update` matches its `base_hash` and the existing page is `generated: true`; every `[[link]]` resolves. Then it writes the pages, regenerates `wiki/index.md` from page frontmatter, prepends an entry to `wiki/log.md`, and commits once. A failure mid-write rolls back. `--dry-run` shows the summary and log entry, and `--diff` adds a unified diff. `wiki/index.md`, `log.md`, `hot.md` and `now.md` are written only by `akashactl`, never by a plan. `akashactl hash <page>` prints the `base_hash` to put in an update.
+
+**Protection and undo.** Each `update` carries the `base_hash` of the page as read; if I edited it since, `apply` stops. `akashactl undo` finds the newest Akasha operation not yet undone and restores every file it touched to its state before that operation, as a new commit. Running it again steps further back. If any of those files changed since, it refuses rather than discard my edits. `capture`, `apply` and `undo` share a write lock (`.akasha/lock`), which records the operation and the paths it is about to write. If a write is interrupted (crash, power loss), the stale lock blocks later writes, and `akashactl recover` restores exactly those paths to the last commit, deletes files the interrupted write created, keeps complete raw copies, and clears the lock. See [ADR-0008](decisions/0008-recover-interrupted-writes.md), [ADR-0003](decisions/0003-own-core-git-undo.md) and [ADR-0005](decisions/0005-apply-and-undo-semantics.md).
 
 **Security boundary.** Captured content may contain prompt injection. Untrusted content is read only by `source-reader` (no write, shell or web tools); `akashactl` accepts only well-formed plans into allowed folders; every write is a dry run first and a commit after.
 
@@ -174,7 +185,7 @@ Each feature = a skill + a note type + optionally a hook or scheduled job, all w
 
 **Session brief.** The SessionStart hook runs `akashactl brief`, printing `hot.md` and active projects with next actions into the session's context. `/akasha:brief` shows the same on demand.
 
-**Extension contract.** A new area = (1) note type in `schema/note-types.yaml`, (2) template, (3) `skills/<area>/SKILL.md` producing write plans, (4) optionally a brief line or scheduled job. No changes to existing code.
+**Extension contract.** A new area = (1) note type in `schema/note-types.toml`, (2) template, (3) `skills/<area>/SKILL.md` producing write plans, (4) optionally a brief line or scheduled job. No changes to existing code.
 
 ## How to use it
 
@@ -196,7 +207,7 @@ Then `/akasha:setup` once.
 
 | Command | Writes? | Does |
 | --- | --- | --- |
-| `/akasha:setup` | Yes, after preview | Create or adopt a vault |
+| `/akasha:setup` | Yes, after preview | Create or adopt a vault (`akashactl init`) |
 | `/akasha:capture` | `.raw/` only | Hash and store inbox files |
 | `/akasha:ingest` | Yes, after dry run | Turn raw sources into wiki pages |
 | `/akasha:ask` | No | Answer from the vault with citations |
@@ -205,7 +216,8 @@ Then `/akasha:setup` once.
 | `/akasha:course` | Yes, after dry run | Build or refresh a course summary and review |
 | `/akasha:brief` | No | Show recent context and active work |
 | `/akasha:lint` | No | Report dead links, orphans, bad frontmatter, stale summaries |
-| `akashactl undo` | Yes | Revert the last Akasha commit |
+| `akashactl undo` | Yes | Undo the last Akasha operation (repeat to step back) |
+| `akashactl recover` | Yes, after `--dry-run` | Clean up after an interrupted write and clear the stale lock |
 
 ## Risks, open decisions and non-goals
 

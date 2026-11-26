@@ -4,7 +4,7 @@ A Claude Code plugin that turns an Obsidian vault into a personal assistant: one
 
 It follows the inbox → raw → wiki pattern from [claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian), rebuilt smaller so every part is understood and owned.
 
-> Status: **design complete, Phase 1 not started.**
+> Status: **Phase 1 in progress**: `akashactl` (`init`, `capture`, `apply`, `undo`) and `/akasha:setup` are done; a trial on a copy of the real vault remains.
 
 The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of the Akashic records: the idea of a complete record of everything ever thought or learned.
 
@@ -18,8 +18,15 @@ The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of
 | `docs/decisions/` | Architecture decision records (ADRs), one per decision |
 | `devlog/` | Dated build log, one file per working session |
 | `CLAUDE.md` | Rules for Claude Code sessions in this repo, including keeping the devlog current |
+| `.claude-plugin/plugin.json` | Plugin manifest |
+| `bin/akashactl` | Wrapper that puts `akashactl` on Claude's Bash PATH when the plugin is enabled |
+| `scripts/akashactl.py` | The single writer: `init`, `capture`, `apply`, `undo`, `recover`, plus read-only `validate` and `hash` |
+| `skills/setup/` | `/akasha:setup`, the guided wrapper around `akashactl init` |
+| `schema/note-types.toml` | Note types: folder, required fields, statuses |
+| `scripts/lib/` | Stdlib helpers: strict frontmatter parser/emitter, schema loader and validator |
+| `tests/` | pytest suite (`python3 -m pytest`); `tests/fixtures/vault/` is the sample vault the tests copy |
 
-Plugin code (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `scripts/`, `schema/`, `tests/`) arrives in Phase 1.
+More skills, agents and hooks arrive from Phase 2 onwards. Requires Python 3.11+. Check a vault's generated pages with `bin/akashactl validate --vault <vault>`. No third-party packages are needed to run Akasha; pytest is the only development dependency.
 
 ## Core ideas
 

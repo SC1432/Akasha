@@ -13,19 +13,21 @@ flowchart TB
   P7["Phase 7 · Capture + automation"]
 ```
 
-**Current phase: 1 (not started).**
+**Current phase: 1 (in progress).**
 
 ## Phase 1 · Foundations (estimate: 1–2 weekends)
 
 - [x] Create the repo
-- [ ] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`
-- [ ] Fixture vault in `tests/` with sample inbox files and a `personal/` note
-- [ ] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip
-- [ ] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.yaml`, check `base_hash`, update `index.md` and `log.md`, commit
-- [ ] `akashactl apply --dry-run` and `akashactl undo`
-- [ ] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init`
-- [ ] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores
+- [x] Settle schema and frontmatter formats without third-party packages ([ADR-0004](decisions/0004-toml-schema-stdlib-frontmatter.md)): `schema/note-types.toml`, `scripts/lib/frontmatter.py`, `scripts/lib/schema.py`, tests
+- [x] Scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/` (plus `bin/akashactl` and read-only `akashactl validate`)
+- [x] Fixture vault in `tests/` with sample inbox files and a `personal/` note (`tests/fixtures/vault/`)
+- [x] `akashactl capture`: SHA-256 hash, create-only copy to `.raw/`, manifest entry, duplicate skip (plus `--dry-run`, link files, one commit per run)
+- [x] `akashactl apply`: parse plan, allow-list paths, validate frontmatter against `note-types.toml`, check `base_hash`, update `index.md` and `log.md`, commit ([ADR-0005](decisions/0005-apply-and-undo-semantics.md))
+- [x] `akashactl apply --dry-run` and `akashactl undo`
+- [x] `/akasha:setup`: preview, adopt existing vault, pick `personal/` folders, write `akasha.json`, `git init` ([ADR-0006](decisions/0006-setup-and-large-media.md); large raw files kept out of git)
+- [x] pytest: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores (`tests/test_apply.py`)
 - [ ] Load with `claude --plugin-dir` and run setup on a copy of the real vault
+- [x] `akashactl recover` (+ `--dry-run`, [ADR-0008](decisions/0008-recover-interrupted-writes.md)): after a crash or power loss mid-write, restore uncommitted changes to the files the interrupted operation was writing (Akasha-managed paths only: `wiki/` pages, `index.md`, `log.md`, `.raw/` bookkeeping) to the last commit, delete partial `.raw/` copies that aren't in the manifest, then clear the stale `.akasha/lock`. Never touches `personal/`, `inbox/` or my own uncommitted edits elsewhere. Idea from claude-obsidian's `transaction recover`.
 
 ## Phase 2 · Knowledge loop (estimate: 1–2 weeks)
 
@@ -63,7 +65,7 @@ flowchart TB
 
 ## Phase 6 · Packaging (estimate: 1 weekend)
 
-- [ ] `.claude-plugin/marketplace.json`, README with install and command reference, version tag
+- [ ] `.claude-plugin/marketplace.json`, README with install and command reference, version tag, `LICENSE` (the plugin directory requires one)
 - [ ] One-line skill descriptions; `setup` and `lint` user-invoked only
 - [ ] Install from GitHub on a second machine or a fresh user account
 

@@ -44,6 +44,9 @@ Full design: `docs/design.md`. Roadmap with task checklists: `docs/roadmap.md`. 
 
 - A Claude Code plugin is a directory with a manifest at `.claude-plugin/plugin.json` plus components: `skills/<name>/SKILL.md` (each also runs as `/<plugin>:<name>`), `agents/*.md`, `hooks/hooks.json`, `.mcp.json`. Source: https://code.claude.com/docs/en/plugins/overview
 - During development, load without a marketplace: `claude --plugin-dir <path>`.
+- Plugin manifest: only `name` is required; everything except `plugin.json` goes at the plugin root, not inside `.claude-plugin/`. Files in `bin/` are added to the Bash tool's PATH while the plugin is enabled, so skills call `akashactl` directly. `${CLAUDE_PLUGIN_ROOT}` is substituted inline in skill/agent Markdown and exported to hooks, but is **not** set in the Bash tool's environment. `${CLAUDE_PLUGIN_DATA}` persists across updates. Source: https://code.claude.com/docs/en/plugins-reference (read 2026-11-25).
+- Skill frontmatter: `disable-model-invocation: true` makes a skill user-invoked only (`/name`); `user-invocable: false` is the opposite. `argument-hint`, `allowed-tools`, `$ARGUMENTS` / `$0` substitution. Source: https://code.claude.com/docs/en/skills.
+- `claude plugin validate <dir>` checks the manifest and layout; `claude --plugin-dir <dir> plugin details akasha` shows the component inventory and always-on token cost. The `claude` CLI exists in cloud containers, so both run in CI-style tests. Publishing to the plugin directory requires a `LICENSE` file or `license` in `plugin.json` (Phase 6).
 - Distribution: a repo with `.claude-plugin/marketplace.json`; install via `claude plugin marketplace add <owner>/<repo>` then `claude plugin install <plugin>@<marketplace>`.
 - Every skill/agent Claude can invoke on its own costs context on every turn (name + description), so keep descriptions to one line and make rarely used skills user-invoked only.
 - Cloud sessions (claude.ai/code) do not load local plugins; vault work happens in local Claude Code.
@@ -52,32 +55,30 @@ Full design: `docs/design.md`. Roadmap with task checklists: `docs/roadmap.md`. 
 ## Not yet verified (check docs before relying on them)
 
 - That **SessionStart hook stdout is injected into the session context** (the session brief depends on it). Read the current hooks docs before building Phase 3.
-- Exact frontmatter field for making a skill user-invoked only.
 - `marketplace.json` schema details (Phase 6).
 
-## Known issue to resolve in Phase 1
+## Schema and frontmatter formats (resolved, ADR-0004)
 
-The design says `schema/note-types.yaml`, but the conventions say **standard library first**, and Python has no stdlib YAML parser. Recommended fix: use `schema/note-types.toml` read with `tomllib` (stdlib since 3.11), or JSON. Frontmatter parsing has the same problem: Obsidian frontmatter is YAML, so either write a small parser for the flat subset Akasha emits (scalars, lists of scalars) or accept PyYAML as the one dependency. Decide, record an ADR, update `docs/design.md`.
+The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes through `scripts/lib/frontmatter.py`, a stdlib parser and emitter for a strict YAML subset (flat mapping; strings, ints, bools, null, lists of those). It raises `FrontmatterError` with a line number on anything else rather than guessing. `scripts/lib/schema.py` validates a page's frontmatter and path against the schema. Both were cross-checked against PyYAML: no mismatches over 20,000 random scalars and 12,174 accepted flow lists. PyYAML is not a dependency; it was only used for that check.
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Contains only docs: `README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0003`, `devlog/`.
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0008`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`init`, `capture`, `apply`, `undo`, `recover`, read-only `validate` and `hash`), `scripts/lib/{frontmatter,schema,vault,gitops,capture,plan,apply,undo,setup_vault,recover}.py`, `skills/setup/SKILL.md`, `tests/` with the fixture vault in `tests/fixtures/vault/` (305 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 not started.** First unchecked roadmap item: scaffold `.claude-plugin/plugin.json`, `skills/`, `scripts/`, `schema/`, `tests/`.
+- **Phase 1 in progress.** Done: everything except the last item. That is: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`, `apply` (+ `--dry-run`/`--diff`), `undo` (ADR-0005); `akashactl init` + `/akasha:setup` (ADR-0006; git size limit default 5 MB), `--git-dir` for cloud-synced vaults (ADR-0007); `akashactl recover` for interrupted writes (ADR-0008). Last Phase 1 item: the trial with `claude --plugin-dir` on a copy of the real vault, which needs Cheneral's Mac. The setup skill's conversational flow has not been run by Claude yet; only `akashactl init` is tested.
 
 ## Open decisions (ask Cheneral when they block work)
 
-- Adopt the existing Obsidian vault in place, or start a new vault and migrate gradually. Until decided, develop against the fixture vault in `tests/` and a **copy** of the real vault, never the original.
+- Adopt the existing Obsidian vault in place, or start a new vault and migrate gradually. `akashactl init` supports both. Until decided, develop against the fixture vault in `tests/` and a **copy** of the real vault, never the original.
 - Which existing vault folders count as `personal/` (coursework, honours research, personal items are candidates).
-- Always-on host for Phase 7 (VPS, home-lab box, or Mac only) and vault sync (Obsidian Sync vs git + Syncthing).
+- Always-on host for Phase 7 (VPS, home-lab box, or Mac only) and vault sync (Obsidian Sync vs git + Syncthing vs Google Drive). Cheneral is considering keeping the vault in Google Drive. Sync or backup must cover `.raw/` files over `raw_git_max_mb`, which git does not store (ADR-0006). With the git history outside a synced vault, only the computer holding the history can write to the vault (ADR-0007).
 - Anthropic API key vs Claude Code plan for headless jobs.
 
 ## Next steps
 
-1. Resolve the YAML/stdlib issue above (ADR-0004).
-2. Phase 1 per `docs/roadmap.md`: scaffold, fixture vault, `akashactl capture`, `apply` (+ `--dry-run`), `undo`, `/akasha:setup`, pytest suite covering: writes outside `wiki/` refused, `personal/` untouched, changed page blocks apply, undo restores, duplicate capture skipped.
-3. Load with `claude --plugin-dir` against a copy of the real vault.
-4. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
+1. On the Mac: copy the real vault, run `claude --plugin-dir <akasha checkout>` in the copy, run `/akasha:setup`, then try `akashactl capture`. Log any friction in the devlog.
+2. Then Phase 2 (knowledge loop): `source-reader` agent, templates, `/akasha:ingest`, `hot.md`, `/akasha:ask`, `/akasha:save`.
+3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 
 ## Later-phase notes worth keeping
 
