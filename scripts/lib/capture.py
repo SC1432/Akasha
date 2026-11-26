@@ -113,7 +113,8 @@ def capture(vault: Vault, dry_run: bool = False, today: datetime.date | None = N
     if dry_run or not pending:
         return result
 
-    with write_lock(vault):
+    paths = [entry["file"] for _, entry in pending.values()] + [MANIFEST, RAW_GITIGNORE]
+    with write_lock(vault, "capture", paths):
         return _write(vault, raw, pending, manifest, result)
 
 

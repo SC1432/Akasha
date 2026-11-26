@@ -73,7 +73,7 @@ def apply_plan(plan: Plan, vault: Vault, note_schema: dict, dry_run: bool = Fals
         target = vault.root / rel
         if target.is_symlink() or (target.parent.exists() and target.parent.is_symlink()):
             raise ApplyError(f"{rel} or its folder is a symlink; refusing to write")
-    with write_lock(vault):
+    with write_lock(vault, plan.operation, list(result.files)):
         originals: dict[Path, bytes | None] = {}
         try:
             for rel, (_, new) in result.files.items():

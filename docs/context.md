@@ -63,9 +63,9 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 
 ## Current state (2026-11-25)
 
-- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0007`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`init`, `capture`, `apply`, `undo`, read-only `validate` and `hash`), `scripts/lib/{frontmatter,schema,vault,gitops,capture,plan,apply,undo,setup_vault}.py`, `skills/setup/SKILL.md`, `tests/` with the fixture vault in `tests/fixtures/vault/` (287 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
+- Repo: https://github.com/SC1432/Akasha (private, default branch `main`). Docs (`README.md`, `CLAUDE.md`, `docs/design.md`, `docs/roadmap.md`, `docs/decisions/0000–0008`, `devlog/`) plus `schema/note-types.toml`, `.claude-plugin/plugin.json`, `bin/akashactl`, `scripts/akashactl.py` (`init`, `capture`, `apply`, `undo`, `recover`, read-only `validate` and `hash`), `scripts/lib/{frontmatter,schema,vault,gitops,capture,plan,apply,undo,setup_vault,recover}.py`, `skills/setup/SKILL.md`, `tests/` with the fixture vault in `tests/fixtures/vault/` (305 passing, `python3 -m pytest`) and `pyproject.toml` (pytest config only, no runtime dependencies).
 - A design doc also exists as a claude.ai artifact ("Akasha: Personal AI Assistant Plugin for Claude Code", https://claude.ai/artifact/UfVbKLAz7CaYgrhs3xSHZx). The repo's `docs/design.md` is now the source of truth; the artifact is not kept in sync.
-- **Phase 1 in progress.** Done: everything except the last item. That is: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`, `apply` (+ `--dry-run`/`--diff`), `undo` (ADR-0005); `akashactl init` + `/akasha:setup` (ADR-0006; git size limit default 5 MB), `--git-dir` for cloud-synced vaults (ADR-0007). Last Phase 1 item: the trial with `claude --plugin-dir` on a copy of the real vault, which needs Cheneral's Mac. The setup skill's conversational flow has not been run by Claude yet; only `akashactl init` is tested.
+- **Phase 1 in progress.** Done: everything except the last item. That is: ADR-0004 and its code; plugin scaffold; fixture vault; `akashactl capture`, `apply` (+ `--dry-run`/`--diff`), `undo` (ADR-0005); `akashactl init` + `/akasha:setup` (ADR-0006; git size limit default 5 MB), `--git-dir` for cloud-synced vaults (ADR-0007); `akashactl recover` for interrupted writes (ADR-0008). Last Phase 1 item: the trial with `claude --plugin-dir` on a copy of the real vault, which needs Cheneral's Mac. The setup skill's conversational flow has not been run by Claude yet; only `akashactl init` is tested.
 
 ## Open decisions (ask Cheneral when they block work)
 
@@ -77,9 +77,8 @@ The schema is `schema/note-types.toml`, read with `tomllib`. Frontmatter goes th
 ## Next steps
 
 1. On the Mac: copy the real vault, run `claude --plugin-dir <akasha checkout>` in the copy, run `/akasha:setup`, then try `akashactl capture`. Log any friction in the devlog.
-2. `akashactl recover` (on the roadmap in Phase 1): clean up after an interrupted write instead of leaving partial files and a stale lock for manual cleanup.
-3. Then Phase 2 (knowledge loop): `source-reader` agent, templates, `/akasha:ingest`, `hot.md`, `/akasha:ask`, `/akasha:save`.
-4. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
+2. Then Phase 2 (knowledge loop): `source-reader` agent, templates, `/akasha:ingest`, `hot.md`, `/akasha:ask`, `/akasha:save`.
+3. End the session per `CLAUDE.md`: devlog entry, tick roadmap, commit and push.
 
 ## Later-phase notes worth keeping
 

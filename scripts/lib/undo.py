@@ -59,7 +59,7 @@ def undo(vault: Vault, dry_run: bool = False) -> UndoResult:
     if dry_run:
         return result
 
-    with write_lock(vault):
+    with write_lock(vault, "undo", paths):
         for path in result.restored:
             data = _git_bytes(vault, "show", f"{parent}:{path}")
             dest = vault.root / path

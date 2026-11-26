@@ -171,7 +171,7 @@ Every change follows one path: a skill drafts a plan, `akashactl apply` validate
 
 **Apply.** `akashactl apply PLAN.json` (or `-` for stdin) validates the whole plan before writing anything and lists every problem at once. The checks are: paths only under `wiki/`, `.md`, outside every `personal` folder, and with no `..`, hidden parts or symlinks; frontmatter passes the schema; a `create` target doesn't exist under any letter case; an `update` matches its `base_hash` and the existing page is `generated: true`; every `[[link]]` resolves. Then it writes the pages, regenerates `wiki/index.md` from page frontmatter, prepends an entry to `wiki/log.md`, and commits once. A failure mid-write rolls back. `--dry-run` shows the summary and log entry, and `--diff` adds a unified diff. `wiki/index.md`, `log.md`, `hot.md` and `now.md` are written only by `akashactl`, never by a plan. `akashactl hash <page>` prints the `base_hash` to put in an update.
 
-**Protection and undo.** Each `update` carries the `base_hash` of the page as read; if I edited it since, `apply` stops. `akashactl undo` finds the newest Akasha operation not yet undone and restores every file it touched to its state before that operation, as a new commit. Running it again steps further back. If any of those files changed since, it refuses rather than discard my edits. `capture`, `apply` and `undo` share a write lock (`.akasha/lock`). See [ADR-0003](decisions/0003-own-core-git-undo.md) and [ADR-0005](decisions/0005-apply-and-undo-semantics.md).
+**Protection and undo.** Each `update` carries the `base_hash` of the page as read; if I edited it since, `apply` stops. `akashactl undo` finds the newest Akasha operation not yet undone and restores every file it touched to its state before that operation, as a new commit. Running it again steps further back. If any of those files changed since, it refuses rather than discard my edits. `capture`, `apply` and `undo` share a write lock (`.akasha/lock`), which records the operation and the paths it is about to write. If a write is interrupted (crash, power loss), the stale lock blocks later writes, and `akashactl recover` restores exactly those paths to the last commit, deletes files the interrupted write created, keeps complete raw copies, and clears the lock. See [ADR-0008](decisions/0008-recover-interrupted-writes.md), [ADR-0003](decisions/0003-own-core-git-undo.md) and [ADR-0005](decisions/0005-apply-and-undo-semantics.md).
 
 **Security boundary.** Captured content may contain prompt injection. Untrusted content is read only by `source-reader` (no write, shell or web tools); `akashactl` accepts only well-formed plans into allowed folders; every write is a dry run first and a commit after.
 
@@ -217,6 +217,7 @@ Then `/akasha:setup` once.
 | `/akasha:brief` | No | Show recent context and active work |
 | `/akasha:lint` | No | Report dead links, orphans, bad frontmatter, stale summaries |
 | `akashactl undo` | Yes | Undo the last Akasha operation (repeat to step back) |
+| `akashactl recover` | Yes, after `--dry-run` | Clean up after an interrupted write and clear the stale lock |
 
 ## Risks, open decisions and non-goals
 

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import contextlib
+import datetime
 import json
 import os
+import socket
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -88,8 +90,12 @@ def write_atomic(path: Path, data: bytes) -> None:
 
 
 @contextlib.contextmanager
-def write_lock(vault: Vault):
-    """Hold .akasha/lock for the duration of a write so two akashactl writes never interleave."""
+def write_lock(vault: Vault, operation: str = "", paths: list[str] | tuple[str, ...] = ()):
+    """Hold .akasha/lock for the duration of a write so two akashactl writes never interleave.
+
+    The lock records which files the write is about to touch, so `akashactl recover` can put
+    exactly those back if the process dies before committing.
+    """
     lock = vault.root / LOCK
     if lock.parent.is_symlink():
         raise VaultError(".akasha is a symlink; refusing to use it")
@@ -98,11 +104,21 @@ def write_lock(vault: Vault):
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError:
         raise VaultError(
-            f"{LOCK} exists: another akashactl write is running, or one crashed. "
-            "If nothing is running, delete the lock file and retry."
+            f"{LOCK} exists: another akashactl write is running, or one was interrupted. "
+            "Run `akashactl recover --dry-run` to see what it was doing and clean up."
         ) from None
+    record = {
+        "operation": operation,
+        "pid": os.getpid(),
+        "host": socket.gethostname(),
+        "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "paths": sorted(set(paths)),
+    }
     with os.fdopen(fd, "w") as f:
-        f.write(f"{os.getpid()}\n")
+        json.dump(record, f, indent=2)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
     try:
         yield
     finally:

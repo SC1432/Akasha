@@ -1,7 +1,7 @@
 """akashactl: the only process that writes to an Akasha vault.
 
 Skills and agents produce write plans; this CLI validates and applies them.
-Implemented: `init`, `capture`, `apply`, `undo`, and the read-only `validate` and `hash`.
+Implemented: `init`, `capture`, `apply`, `undo`, `recover`, and the read-only `validate` and `hash`.
 `brief` and `lint` arrive per docs/roadmap.md.
 """
 
@@ -25,6 +25,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 from lib import apply as apply_mod  # noqa: E402
 from lib import capture, frontmatter, gitops, plan as plan_mod, schema, setup_vault, undo as undo_mod  # noqa: E402
+from lib import recover as recover_mod  # noqa: E402
 from lib import vault as vault_mod  # noqa: E402
 
 PLUGIN_ROOT = SCRIPTS_DIR.parent
@@ -182,6 +183,37 @@ def cmd_undo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_recover(args: argparse.Namespace) -> int:
+    """Clean up after an interrupted write: restore the files it was writing and clear the lock."""
+    try:
+        vault = vault_mod.open_vault(args.vault)
+        result = recover_mod.recover(vault, dry_run=args.dry_run)
+    except recover_mod.RecoverError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except (vault_mod.VaultError, gitops.GitError, OSError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    if not result.found:
+        print("nothing to recover: no interrupted write (no .akasha/lock)")
+        return 0
+    when = f", started {result.started}" if result.started else ""
+    pid = f", pid {result.pid}" if result.pid is not None else ""
+    print(f"{'would recover' if args.dry_run else 'recovered'} interrupted {result.operation}{when}{pid}:")
+    for path in result.restored:
+        print(f"  restore {path} (back to the last commit)")
+    for path in result.deleted:
+        print(f"  delete {path} (created by the interrupted write)")
+    for path in result.kept:
+        print(f"  keep {path} (complete raw copy; the next capture records it)")
+    for path in result.unchanged:
+        print(f"  ok {path} (already matches the last commit)")
+    for note in result.notes:
+        print(f"  note: {note}")
+    print("  would clear .akasha/lock" if args.dry_run else "  cleared .akasha/lock")
+    return 0
+
+
 def cmd_hash(args: argparse.Namespace) -> int:
     """Print the sha256 of each file, for use as base_hash in an update."""
     status = 0
@@ -227,6 +259,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vault", default=".", help="vault root (default: current directory)")
     p.add_argument("--dry-run", action="store_true", help="show what would be restored; write nothing")
     p.set_defaults(func=cmd_undo)
+
+    p = sub.add_parser("recover", help="clean up after an interrupted write and clear the stale lock")
+    p.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    p.add_argument("--dry-run", action="store_true", help="show what would be restored or deleted; write nothing")
+    p.set_defaults(func=cmd_recover)
 
     p = sub.add_parser("hash", help="print sha256 of files (the base_hash for an update)")
     p.add_argument("paths", nargs="+")

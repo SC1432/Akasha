@@ -20,7 +20,7 @@ The name comes from *akasha* (Sanskrit ākāśa, "aether" or "sky"), the root of
 | `CLAUDE.md` | Rules for Claude Code sessions in this repo, including keeping the devlog current |
 | `.claude-plugin/plugin.json` | Plugin manifest |
 | `bin/akashactl` | Wrapper that puts `akashactl` on Claude's Bash PATH when the plugin is enabled |
-| `scripts/akashactl.py` | The single writer: `init`, `capture`, `apply`, `undo`, plus read-only `validate` and `hash` |
+| `scripts/akashactl.py` | The single writer: `init`, `capture`, `apply`, `undo`, `recover`, plus read-only `validate` and `hash` |
 | `skills/setup/` | `/akasha:setup`, the guided wrapper around `akashactl init` |
 | `schema/note-types.toml` | Note types: folder, required fields, statuses |
 | `scripts/lib/` | Stdlib helpers: strict frontmatter parser/emitter, schema loader and validator |
